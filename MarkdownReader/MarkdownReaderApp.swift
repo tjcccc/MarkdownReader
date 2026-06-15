@@ -11,10 +11,10 @@ import SwiftUI
 struct MarkdownReaderApp: App {
     var body: some Scene {
         DocumentGroup(viewing: MarkdownReaderDocument.self) { file in
-            ContentView(document: file.document)
+            ContentView(document: file.document, fileURL: file.fileURL)
                 .frame(minWidth: 720, minHeight: 520)
         }
-        .defaultSize(width: 980, height: 780)
+        .defaultSize(width: 1200, height: 820)
         .restorationBehavior(.disabled)
         .commands {
             SidebarCommands()

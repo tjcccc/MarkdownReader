@@ -2,9 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- App Sandbox disabled so the reader can load images stored alongside a
+         Markdown file (e.g. ./assets/foo.png). The sandbox only grants access to
+         the file opened via the panel, not its sibling resources. Trade-off:
+         the app is no longer sandboxed and is not Mac App Store eligible. -->
     <key>com.apple.security.app-sandbox</key>
-    <true/>
-    <key>com.apple.security.files.user-selected.read-only</key>
-    <true/>
+    <false/>
 </dict>
 </plist>

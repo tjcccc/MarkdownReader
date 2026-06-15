@@ -2,14 +2,14 @@
 
 MarkdownReader is a small SwiftUI document app for opening and reading Markdown files on Apple platforms. It is currently closer to a minimal viewer than a polished product.
 
-Current release snapshot: `0.1.0`
+Current release snapshot: `0.2.0`
 
 ## Current Status
 
 - Opens `.md` and `.markdown` files through a document-based app flow.
-- Renders Markdown content with `MarkdownUI`.
+- Renders Markdown into one styled `NSAttributedString` shown in a read-only, fully selectable `NSTextView`, so text selects, copies, and searches across the whole document like a normal reader.
 - Opens files in viewer mode rather than editor mode.
-- Uses a split-view reader with a toggleable table-of-contents sidebar for Markdown headings.
+- Uses a split-view reader with a toggleable table-of-contents sidebar for Markdown headings; selecting a heading scrolls the document to it.
 - Applies a restrained native reading style tuned for macOS.
 - Disables document restoration so the app does not automatically reopen the last restored file on launch.
 - Still has product and release gaps around tests, some document-window polish, and more robust file handling.
@@ -19,7 +19,9 @@ Current release snapshot: `0.1.0`
 - Swift
 - SwiftUI
 - `FileDocument` with `DocumentGroup`
-- [`swift-markdown-ui`](https://github.com/gonzalezreal/swift-markdown-ui)
+- AppKit `NSTextView` (via `NSViewRepresentable`) for native, document-wide text selection
+- Foundation `AttributedString(markdown:)` for parsing/rendering Markdown into `NSAttributedString`
+- [`swift-markdown-ui`](https://github.com/gonzalezreal/swift-markdown-ui) — retained as a dependency for planned native table/image embedding; not currently used for rendering
 - Xcode project-based workflow
 
 ## Project Structure
@@ -32,12 +34,17 @@ Current release snapshot: `0.1.0`
 
 ## How It Works Today
 
-The app registers the Markdown UTI (`net.daringfireball.markdown`) and opens matching files in a viewer-only `DocumentGroup`. The document loader reads file contents as UTF-8 text and the main content view passes that string into `MarkdownUI` for rendering. The reader UI now uses a split view with a heading-based table of contents in the sidebar.
+The app registers the Markdown UTI (`net.daringfireball.markdown`) and opens matching files in a viewer-only `DocumentGroup`. The document loader reads file contents as UTF-8 text. `MarkdownAttributedRenderer` converts that string into a single styled `NSAttributedString` (plus a heading table of contents with character ranges), which `SelectableMarkdownView` displays in a read-only `NSTextView`. The reader UI uses a split view with the heading-based table of contents in the sidebar; selecting a heading scrolls the text view to it.
+
+Headings, paragraphs, lists, inline styles, code blocks, and blockquotes render as styled text; HTML comments are stripped; GFM tables render as native `NSTextTable` grids; and images are embedded as `NSTextAttachment`, resolved relative to the document's folder (the folder URL is passed in from the document scene). Unreadable images fall back to a `🖼 alt` placeholder.
+
+Because images live beside the document and the App Sandbox only grants access to the opened file, the **App Sandbox is disabled** so sibling resources can be read. This means the app is not sandboxed and is not Mac App Store eligible.
 
 ## Development Notes
 
-- The repository currently has placeholder tests only.
-- The app is now wired as a reader-only document viewer and uses read-only user-selected file access in its sandbox entitlements.
+- `MarkdownAttributedRenderer` is covered by unit tests (`MarkdownReaderTests`, Swift Testing); the UI targets are still template placeholders.
+- The app is a reader-only document viewer. The App Sandbox is disabled (see above) so images stored next to a Markdown file can be loaded.
+- `scripts/run-debug.sh` builds Debug and runs the app from the terminal (`scripts/run-debug.sh file.md` to open a document).
 
 ## Runtime Noise Checklist
 
@@ -64,7 +71,6 @@ When these messages appear, use this check order:
 
 ## Next Likely Improvements
 
-- Add focused tests around document loading and heading parsing.
+- Polish rendering fidelity: rounded code-block cards and a blockquote accent bar (the attributed-string versions are currently flat).
 - Improve file decoding and error handling beyond UTF-8-only assumptions.
 - Refine document-window polish such as the unresolved `Locked` subtitle.
-- Revisit selection/copy ergonomics if `MarkdownUI`'s cross-block selection limit becomes a product issue.
