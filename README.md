@@ -2,7 +2,7 @@
 
 MarkdownReader is a small SwiftUI document app for opening and reading Markdown files on Apple platforms. It is currently closer to a minimal viewer than a polished product.
 
-Current release snapshot: `0.2.0`
+Current release snapshot: `0.2.1`
 
 ## Current Status
 

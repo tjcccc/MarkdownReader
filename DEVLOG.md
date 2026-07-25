@@ -1,5 +1,21 @@
 # DEVLOG
 
+## 2026-07-25
+
+- Release: cut `0.2.1` — patch bump over 0.2.0. Icon artwork only; no behavior, API, or feature-surface change.
+- App icon replaced: swapped the emoji-style spiral notebook for a new open-book render (yellow/white pages on a blue cover), supplied by the user as a 2048×2048 transparent PNG.
+- Re-composited rather than plain-resized. The source art nearly filled its canvas (alpha bbox 1892×1614 of 2048, ~39pt margins at 1024-equivalent) — far tighter than any macOS icon. Cropped to the alpha bbox, scaled to an 880pt-wide footprint, and centered at y≈490 on a fresh 1024 canvas (optical center sits slightly high, leaving bottom room as the previous icon did). All 7 slot sizes are resampled from a 2048 master, not chained down, and tagged sRGB (the source was untagged).
+- `Contents.json` unchanged — same 7 filenames and the same reuse pattern across 1x/2x slots.
+- macOS 26 (Tahoe) icon behavior, verified empirically on 26.5.2 via `NSWorkspace.icon(forFile:)` against the actual built app:
+  - Tahoe auto-adapts legacy free-form icons by compositing them onto a system-drawn light-gray squircle plate and shrinking the art to fit. Our icon renders this way; the book reads well within the plate at the chosen 880pt footprint.
+  - Probes confirmed this is inherent to the appiconset format, not a defect here: full-bleed opaque art gets cleanly masked to the squircle by Tahoe, but would render as a hard square on the macOS 15.1 deployment target. Art with transparent margins (needed for 15.1) always gets plated on Tahoe — see Ghostty for the same double-rounded artifact.
+  - A Tahoe-native squircle would require either an Icon Composer `.icon` file or compositing the book onto an opaque background — both are design changes to the supplied artwork, deferred pending a decision.
+- Verified: `xcodebuild -scheme MarkdownReader -project MarkdownReader.xcodeproj -destination 'platform=macOS,arch=arm64' -quiet clean build` exits 0 (exit code captured directly, not through a pipe; the only `error:` string in the log is simulator noise inside a method name — `sharedServiceContextForDeveloperDir:error:` — from the unrelated out-of-date CoreSimulator warning).
+- Small-size legibility, checked by upscaling the actual renders rather than eyeballing at native size:
+  - 32pt and up: reads clearly as an open book — yellow left page, white right page, blue cover and curled corner all survive.
+  - 16pt on a plain light background (i.e. free-form, as macOS 15.1 would draw it): weak. The white right-hand page washes out against white and the blue page-curl breaks up into stray pixels, leaving mostly a yellow block. This is a mild regression from the previous icon, whose solid yellow notebook held its silhouette at 16pt.
+  - 16pt as macOS 26 actually composites it: acceptable. The system's gray plate backs the art and restores contrast on the white page, so the open-book shape still reads. Since the plate is what this machine renders, the 16pt weakness is largely theoretical today.
+
 ## 2026-06-15
 
 - Release: cut `0.2.0`. Highlights since 0.1.0 — whole-document native text selection (render to `NSAttributedString` in a read-only `NSTextView`), GFM tables (`NSTextTable`), local images (`NSTextAttachment`, App Sandbox disabled to read sibling files), padded code-block boxes, HTML-comment stripping, image lightbox + hover cursor, larger/centered reading column, an emoji app icon, repo `CLAUDE.md`, and dev scripts. Renderer covered by Swift Testing unit tests.
