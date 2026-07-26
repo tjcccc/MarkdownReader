@@ -15,6 +15,64 @@
 import AppKit
 import Foundation
 
+extension NSAttributedString.Key {
+    /// Marks an inline code span. `.backgroundColor` can't carry padding or corner
+    /// radius, so the text view's layout manager draws the fill for runs tagged
+    /// here — block-level fills (quotes, fenced code) are left alone.
+    static let inlineCodeSpan = NSAttributedString.Key("MarkdownReaderInlineCodeSpan")
+
+    /// Marks a fenced code block's characters, carrying what the text view needs
+    /// to overlay a language tag and a copy button on the block.
+    static let codeBlockInfo = NSAttributedString.Key("MarkdownReaderCodeBlockInfo")
+}
+
+/// The language hint and source of one fenced code block. A reference type
+/// because attributed-string values must bridge to Objective-C.
+final class CodeBlockInfo: NSObject {
+    let language: String?
+    let code: String
+
+    init(language: String?, code: String) {
+        self.language = language
+        self.code = code
+    }
+}
+
+/// Geometry shared by the renderer (which builds the box) and the text view
+/// (which positions the language tag and copy button inside it).
+enum CodeBlockMetrics {
+    static let cornerRadius: CGFloat = 8
+    static let padding: CGFloat = 14
+    /// Extra room above the code so the tag and button never overlap a long line.
+    static let headerHeight: CGFloat = 22
+    /// The box fill. The header overlay repaints it under itself: that strip is
+    /// the block's top padding, which holds no glyphs, so a partial repaint of
+    /// it (scrolling exposes exactly this) would otherwise leave bare white.
+    static let background = dynamicColor(
+        light: NSColor(white: 0, alpha: 0.05),
+        dark: NSColor(white: 1, alpha: 0.08)
+    )
+}
+
+/// Text block that paints its background as a rounded rect. Used for fenced code
+/// blocks; `NSTextBlock`'s own drawing is always a square fill.
+final class RoundedTextTableBlock: NSTextTableBlock {
+    override func drawBackground(
+        withFrame frameRect: NSRect,
+        in controlView: NSView,
+        characterRange charRange: NSRange,
+        layoutManager: NSLayoutManager
+    ) {
+        guard let backgroundColor else { return }
+        backgroundColor.setFill()
+        NSBezierPath(
+            roundedRect: frameRect,
+            xRadius: CodeBlockMetrics.cornerRadius,
+            yRadius: CodeBlockMetrics.cornerRadius
+        ).fill()
+    }
+}
+
 /// A heading entry for the sidebar outline. `range` points at the heading text
 /// inside the rendered `NSAttributedString` so the text view can scroll to it.
 struct TOCItem: Identifiable, Hashable {
@@ -46,10 +104,7 @@ enum MarkdownAttributedRenderer {
 
         static let headingSizes: [Int: CGFloat] = [1: 31, 2: 25, 3: 21, 4: 19, 5: 17, 6: 16]
 
-        static let codeBackground = dynamicColor(
-            light: NSColor(white: 0, alpha: 0.05),
-            dark: NSColor(white: 1, alpha: 0.08)
-        )
+        static let codeBackground = CodeBlockMetrics.background
         static let quoteBackground = dynamicColor(
             light: NSColor(white: 0, alpha: 0.035),
             dark: NSColor(white: 1, alpha: 0.06)
@@ -197,15 +252,24 @@ enum MarkdownAttributedRenderer {
     ) {
         let raw = block.runs.map { String(parsed[$0.range].characters) }.joined()
         let code = raw.trimmingCharacters(in: CharacterSet(charactersIn: "\n"))
+        let language = block.intent.flatMap(codeBlockLanguage)
 
         // Render as a single-cell NSTextTable: only table blocks (not plain
         // NSTextBlock) actually draw a background, and the cell fills uniformly
         // with even padding while wrapped lines stay indented inside the box.
         let table = NSTextTable()
         table.numberOfColumns = 1
-        let cell = NSTextTableBlock(table: table, startingRow: 0, rowSpan: 1, startingColumn: 0, columnSpan: 1)
+        let cell = RoundedTextTableBlock(table: table, startingRow: 0, rowSpan: 1, startingColumn: 0, columnSpan: 1)
         cell.backgroundColor = Style.codeBackground
-        cell.setWidth(14, type: .absoluteValueType, for: .padding)
+        cell.setWidth(CodeBlockMetrics.padding, type: .absoluteValueType, for: .padding)
+        // `.minY` is the top edge for text blocks: reserve a strip for the
+        // language tag and copy button the text view overlays there.
+        cell.setWidth(
+            CodeBlockMetrics.padding + CodeBlockMetrics.headerHeight,
+            type: .absoluteValueType,
+            for: .padding,
+            edge: .minY
+        )
         cell.setWidth(0, type: .absoluteValueType, for: .border)
 
         let paragraph = NSMutableParagraphStyle()
@@ -215,7 +279,8 @@ enum MarkdownAttributedRenderer {
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedSystemFont(ofSize: round(Style.bodySize * Style.codeScale), weight: .regular),
             .foregroundColor: NSColor.labelColor,
-            .paragraphStyle: paragraph
+            .paragraphStyle: paragraph,
+            .codeBlockInfo: CodeBlockInfo(language: language, code: code)
         ]
         output.append(NSAttributedString(string: code + "\n", attributes: attributes))
         // Plain paragraph closes the table and adds a gap below the box.
@@ -434,6 +499,7 @@ enum MarkdownAttributedRenderer {
         if inline.contains(.code) && !block.isCode {
             font = .monospacedSystemFont(ofSize: round(block.font.pointSize * Style.codeScale), weight: .regular)
             attributes[.backgroundColor] = Style.codeBackground
+            attributes[.inlineCodeSpan] = true
         }
 
         font = applyingTraits(
@@ -550,6 +616,17 @@ enum MarkdownAttributedRenderer {
 
     private static func isCodeBlock(_ intent: PresentationIntent) -> Bool {
         intent.components.contains { if case .codeBlock = $0.kind { return true } else { return false } }
+    }
+
+    /// The fence's language hint (```swift → "swift"), if the author gave one.
+    private static func codeBlockLanguage(_ intent: PresentationIntent) -> String? {
+        for component in intent.components {
+            if case .codeBlock(let languageHint) = component.kind {
+                guard let hint = languageHint?.trimmingCharacters(in: .whitespaces), !hint.isEmpty else { return nil }
+                return hint
+            }
+        }
+        return nil
     }
 
     private static func isThematicBreak(_ intent: PresentationIntent) -> Bool {

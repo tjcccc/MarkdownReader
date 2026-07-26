@@ -11,14 +11,14 @@ A SwiftUI document-based **reader** (viewer, not editor) for Markdown files, mac
 - Swift 6 language mode (`SWIFT_VERSION = 6.0`), SwiftUI, `FileDocument` + `DocumentGroup`.
 - Deployment target: macOS 15.1 (`SDKROOT = auto`; project also lists iOS/visionOS as supported platforms, but the app is built and exercised on macOS).
 - Dependency: [`swift-markdown-ui`](https://github.com/gonzalezreal/swift-markdown-ui) 2.4.1 (pulls in NetworkImage, swift-cmark). Pins live in `MarkdownReader.xcodeproj/.../swiftpm/Package.resolved`.
-- Xcode project workflow (no SwiftPM manifest, no Makefile). Bundle id `com.taojiachun.MarkdownReader`, version in `MARKETING_VERSION` (currently 0.1.0).
+- Xcode project workflow (no SwiftPM manifest, no Makefile). Bundle id `com.taojiachun.MarkdownReader`, version in `MARKETING_VERSION` (currently 0.3.0).
 
 ## Layout
 
 - `MarkdownReader/MarkdownReaderApp.swift` — `@main` scene: `DocumentGroup(viewing:)`, restoration disabled, `SidebarCommands()`; passes `file.fileURL` into `ContentView` so images resolve relative to the document folder.
 - `MarkdownReader/MarkdownReaderDocument.swift` — `FileDocument`; registers UTI `net.daringfireball.markdown`; reads/writes UTF-8 only.
-- `MarkdownReader/MarkdownAttributedRenderer.swift` — pure Markdown→`NSAttributedString` converter (+ heading TOC with `NSRange`s). Uses Foundation `AttributedString(markdown:)`; strips HTML comments; renders tables via `NSTextTable` and images via `NSTextAttachment` (resolved against the doc folder `baseURL`).
-- `MarkdownReader/SelectableMarkdownView.swift` — `NSViewRepresentable` over a read-only, selectable `NSTextView` (centered ~820pt column; links open in browser; scrolls to a heading on sidebar selection).
+- `MarkdownReader/MarkdownAttributedRenderer.swift` — pure Markdown→`NSAttributedString` converter (+ heading TOC with `NSRange`s). Uses Foundation `AttributedString(markdown:)`; strips HTML comments; renders tables via `NSTextTable` and images via `NSTextAttachment` (resolved against the doc folder `baseURL`). Also tags runs the view needs to style or decorate: `.inlineCodeSpan` on inline code, `.codeBlockInfo` (language + source) on fenced blocks.
+- `MarkdownReader/SelectableMarkdownView.swift` — `NSViewRepresentable` over a read-only, selectable `NSTextView` (centered ~820pt column; links open in browser; scrolls to a heading on sidebar selection). Builds an **explicit TextKit 1 stack**; its `NSLayoutManager` subclass keeps background fills out of paragraph indents on wrapped lines and draws inline code as padded rounded chips. Each fenced block gets a `CodeBlockHeaderView` overlay (language tag + copy button) positioned from layout geometry.
 - `MarkdownReader/ContentView.swift` — `NavigationSplitView` with the TOC sidebar + the text view; renders once into `@State` in `init`.
 - `MarkdownReaderTests/` — unit target, **Swift Testing** (`import Testing`, `@Test`). `MarkdownAttributedRendererTests` covers the renderer.
 - `MarkdownReaderUITests/` — UI target, **XCTest**. Placeholder only.

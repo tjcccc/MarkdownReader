@@ -91,6 +91,45 @@ struct MarkdownAttributedRendererTests {
         #expect(sawMonospaced)
     }
 
+    /// The text view keys its rounded, padded inline-code fill off this marker,
+    /// so losing it would silently drop the styling.
+    @Test func tagsInlineCodeSpans() {
+        let result = MarkdownAttributedRenderer.render("Prose with `code` in it.")
+        let full = NSRange(location: 0, length: result.text.length)
+
+        var taggedText = ""
+        result.text.enumerateAttribute(.inlineCodeSpan, in: full) { value, range, _ in
+            guard value != nil else { return }
+            taggedText += result.text.attributedSubstring(from: range).string
+        }
+        #expect(taggedText == "code")
+    }
+
+    /// The code block's language tag and copy button are driven by this attribute.
+    @Test func attachesCodeBlockInfoWithLanguageAndSource() {
+        let result = MarkdownAttributedRenderer.render("```swift\nlet x = 1\n```")
+        let full = NSRange(location: 0, length: result.text.length)
+
+        var info: CodeBlockInfo?
+        result.text.enumerateAttribute(.codeBlockInfo, in: full) { value, _, _ in
+            if let value = value as? CodeBlockInfo { info = value }
+        }
+        #expect(info?.language == "swift")
+        #expect(info?.code == "let x = 1")
+    }
+
+    @Test func codeBlockWithoutLanguageHintHasNoLanguage() {
+        let result = MarkdownAttributedRenderer.render("```\nplain\n```")
+        let full = NSRange(location: 0, length: result.text.length)
+
+        var info: CodeBlockInfo?
+        result.text.enumerateAttribute(.codeBlockInfo, in: full) { value, _, _ in
+            if let value = value as? CodeBlockInfo { info = value }
+        }
+        #expect(info != nil)
+        #expect(info?.language == nil)
+    }
+
     @Test func capturesLinkAttribute() {
         let result = MarkdownAttributedRenderer.render("See [Swift](https://swift.org).")
 

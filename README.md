@@ -2,7 +2,7 @@
 
 MarkdownReader is a small SwiftUI document app for opening and reading Markdown files on Apple platforms. It is currently closer to a minimal viewer than a polished product.
 
-Current release snapshot: `0.2.1`
+Current release snapshot: `0.3.0`
 
 ## Current Status
 
@@ -11,6 +11,7 @@ Current release snapshot: `0.2.1`
 - Opens files in viewer mode rather than editor mode.
 - Uses a split-view reader with a toggleable table-of-contents sidebar for Markdown headings; selecting a heading scrolls the document to it.
 - Applies a restrained native reading style tuned for macOS.
+- Styles code as rounded chips and boxes: inline spans get padded, rounded highlights that stay clear of list indents when they wrap, and fenced blocks are rounded boxes carrying the fence's language tag and a per-block copy button.
 - Disables document restoration so the app does not automatically reopen the last restored file on launch.
 - Still has product and release gaps around tests, some document-window polish, and more robust file handling.
 
@@ -71,6 +72,7 @@ When these messages appear, use this check order:
 
 ## Next Likely Improvements
 
-- Polish rendering fidelity: rounded code-block cards and a blockquote accent bar (the attributed-string versions are currently flat).
+- Polish rendering fidelity: a blockquote accent bar (still a flat fill). Code blocks and inline code are now rounded.
+- Known issue: a thin white seam can appear across a code block, under the language tag. Diagnosed as a partial-repaint gap in the box background, but not yet resolved — see the 2026-07-26 DEVLOG entry for what has been ruled out.
 - Improve file decoding and error handling beyond UTF-8-only assumptions.
 - Refine document-window polish such as the unresolved `Locked` subtitle.
