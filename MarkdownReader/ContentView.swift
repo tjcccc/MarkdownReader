@@ -19,21 +19,35 @@ private struct TableOfContentsRow: View {
 
 struct ContentView: View {
     let document: MarkdownReaderDocument
+    private let documentRootURL: URL?
 
     @State private var rendered: RenderedMarkdown
     @State private var selectedTOCID: Int?
-    @State private var scrollTarget: NSRange?
+    @State private var scrollAnchor: String?
     @State private var columnVisibility: NavigationSplitViewVisibility
     @State private var previewImage: NSImage?
+    @State private var showsDisplayOptions = false
+
+    @AppStorage("reader.fontSize") private var fontSize = ReaderDisplayOptions.defaultFontSize
+    @AppStorage("reader.lineHeight") private var lineHeight = ReaderDisplayOptions.defaultLineHeight
+    @AppStorage("reader.theme") private var theme = ReaderTheme.system
+    @AppStorage("reader.syntaxHighlighting") private var syntaxHighlighting = true
 
     init(document: MarkdownReaderDocument, fileURL: URL? = nil) {
         self.document = document
-        let result = MarkdownAttributedRenderer.render(
-            document.text,
-            baseURL: fileURL?.deletingLastPathComponent()
-        )
+        documentRootURL = fileURL?.deletingLastPathComponent()
+        let result = MarkdownHTMLRenderer.render(document.text)
         _rendered = State(initialValue: result)
         _columnVisibility = State(initialValue: result.toc.count >= 4 ? .all : .detailOnly)
+    }
+
+    private var displayOptions: ReaderDisplayOptions {
+        ReaderDisplayOptions(
+            fontSize: fontSize,
+            lineHeight: lineHeight,
+            theme: theme,
+            syntaxHighlighting: syntaxHighlighting
+        )
     }
 
     var body: some View {
@@ -56,9 +70,11 @@ struct ContentView: View {
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 240, max: 420)
         } detail: {
-            SelectableMarkdownView(
-                attributedText: rendered.text,
-                scrollTarget: scrollTarget,
+            MarkdownWebView(
+                rendered: rendered,
+                documentRootURL: documentRootURL,
+                displayOptions: displayOptions,
+                scrollAnchor: scrollAnchor,
                 onImageTap: { image in
                     withAnimation(.easeInOut(duration: 0.15)) { previewImage = image }
                 }
@@ -69,7 +85,25 @@ struct ContentView: View {
         .onChange(of: selectedTOCID) { _, newValue in
             guard let id = newValue,
                   let item = rendered.toc.first(where: { $0.id == id }) else { return }
-            scrollTarget = item.range
+            scrollAnchor = item.anchor
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showsDisplayOptions.toggle()
+                } label: {
+                    Label("Display Options", systemImage: "textformat.size")
+                }
+                .help("Display Options")
+                .popover(isPresented: $showsDisplayOptions, arrowEdge: .bottom) {
+                    ReaderDisplayOptionsView(
+                        fontSize: $fontSize,
+                        lineHeight: $lineHeight,
+                        theme: $theme,
+                        syntaxHighlighting: $syntaxHighlighting
+                    )
+                }
+            }
         }
         .overlay {
             if let previewImage {
@@ -79,6 +113,7 @@ struct ContentView: View {
                 .transition(.opacity)
             }
         }
+        .preferredColorScheme(theme.colorScheme)
     }
 }
 

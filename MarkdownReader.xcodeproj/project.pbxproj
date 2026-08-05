@@ -7,7 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		221982362CFD9DB200013B66 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 221982352CFD9DB200013B66 /* MarkdownUI */; };
+		221982362CFD9DB200013B66 /* cmark-gfm in Frameworks */ = {isa = PBXBuildFile; productRef = 221982352CFD9DB200013B66 /* cmark-gfm */; };
+		A1B2C3D42E3A000000000001 /* cmark-gfm-extensions in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D42E3A000000000002 /* cmark-gfm-extensions */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,7 +70,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				221982362CFD9DB200013B66 /* MarkdownUI in Frameworks */,
+				221982362CFD9DB200013B66 /* cmark-gfm in Frameworks */,
+				A1B2C3D42E3A000000000001 /* cmark-gfm-extensions in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -138,7 +140,8 @@
 			);
 			name = MarkdownReader;
 			packageProductDependencies = (
-				221982352CFD9DB200013B66 /* MarkdownUI */,
+				221982352CFD9DB200013B66 /* cmark-gfm */,
+				A1B2C3D42E3A000000000002 /* cmark-gfm-extensions */,
 			);
 			productName = MarkdownReader;
 			productReference = 221982012CFD9D5100013B66 /* MarkdownReader.app */;
@@ -223,7 +226,7 @@
 			mainGroup = 221981F82CFD9D5100013B66;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				221982332CFD9D6F00013B66 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
+				221982332CFD9D6F00013B66 /* XCRemoteSwiftPackageReference "swift-cmark" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 221982022CFD9D5100013B66 /* Products */;
@@ -331,7 +334,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taojiachun.MarkdownReader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -375,7 +378,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taojiachun.MarkdownReader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -515,7 +518,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taojiachun.MarkdownReaderTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -538,7 +541,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taojiachun.MarkdownReaderTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -560,7 +563,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taojiachun.MarkdownReaderUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -582,7 +585,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 0.3.0;
+				MARKETING_VERSION = 0.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taojiachun.MarkdownReaderUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -637,21 +640,26 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		221982332CFD9D6F00013B66 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
+		221982332CFD9D6F00013B66 /* XCRemoteSwiftPackageReference "swift-cmark" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
+			repositoryURL = "https://github.com/swiftlang/swift-cmark";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.4.1;
+				minimumVersion = 0.5.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		221982352CFD9DB200013B66 /* MarkdownUI */ = {
+		221982352CFD9DB200013B66 /* cmark-gfm */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 221982332CFD9D6F00013B66 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
-			productName = MarkdownUI;
+			package = 221982332CFD9D6F00013B66 /* XCRemoteSwiftPackageReference "swift-cmark" */;
+			productName = "cmark-gfm";
+		};
+		A1B2C3D42E3A000000000002 /* cmark-gfm-extensions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 221982332CFD9D6F00013B66 /* XCRemoteSwiftPackageReference "swift-cmark" */;
+			productName = "cmark-gfm-extensions";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

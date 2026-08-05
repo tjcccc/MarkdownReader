@@ -1,5 +1,18 @@
 # DEVLOG
 
+## 2026-08-05
+
+- Release: cut `0.4.0` — minor bump over 0.3.0 for the whole-document WebKit renderer, GitHub-inspired presentation, persistent display controls, and offline syntax highlighting.
+- Replaced the custom TextKit renderer with one whole-document `WKWebView`. This removes the split responsibilities that made table selection, code-block selection, padding, rounded backgrounds, and blockquote layout depend on `NSLayoutManager` drawing geometry. The SwiftUI document window, native TOC sidebar, toolbar, file flow, pasteboard integration, external-link handling, and image lightbox remain native.
+- `MarkdownHTMLRenderer` now uses `cmark-gfm` directly with the table, task-list, strikethrough, autolink, and tag-filter extensions. It returns safe HTML plus heading titles/levels/anchors for the sidebar. Raw Markdown HTML remains disabled.
+- Added a GitHub-inspired local page in `MarkdownHTMLDocument`: controlled light/dark CSS tokens, a 900px reading column, GitHub-like headings/tables/blockquotes/code, continuous browser selection, fenced-code language labels, and per-block copy controls.
+- Added offline syntax highlighting with the common-language Highlight.js 11.11.1 browser build. Fenced language tags are honored, untagged blocks use automatic detection, unsupported language tags stay readable as plain code, and highlighting can be disabled without reloading the document.
+- Added a native display popover backed by `AppStorage`: font size (13–26pt), line spacing (1.2–2.0×), System/Light/Dark theme, syntax-highlighting toggle, and reset. Updates are sent to the existing page rather than recreating the web view.
+- Relative document images are served through `markdown-reader-resource://document/`. The resolver canonicalizes paths, resolves symlinks, and rejects parent traversal; the scheme exposes only validated document files and the exact bundled highlighter resource. The page also has a restrictive CSP, blocks network content, and opens external links outside the web view.
+- Removed the unused `swift-markdown-ui` and NetworkImage dependency chain; the project now pins only `swift-cmark` 0.5.0. Deleted the 706-line attributed renderer, 478-line custom text view, and their TextKit-specific tests.
+- Verification: compiler-warning-free macOS arm64 build exits 0; focused unit suite passes 15/15, covering GFM HTML, safe raw-HTML handling, headings/anchors, initial page options/CSP, preference bounds, local-resource traversal rejection, real custom-scheme highlighter and local-image loads, and in-place setting updates. WebKit snapshots were inspected in light/plain-code and dark/highlighted states; table padding, blockquote inset, continuous code surfaces, and Swift/Python syntax colors render cleanly. The documented Release command exits 0 and the built app contains the offline `highlight.min.js` resource.
+- Full test action: `MarkdownReaderUITests.testExample` and `testLaunchPerformance` passed, confirming repeated app launches. The template `MarkdownReaderUITestsLaunchTests.testLaunch` then hit its known 120-second environmental runner timeout; this run repeatedly logged `DebuggerVersionStore: no debugger version`, and Xcode was interrupted after it stalled while finalizing the already-failed test. No product crash or assertion was reported.
+
 ## 2026-07-26
 
 - Release: cut `0.3.0` — minor bump over 0.2.1. New user-visible capability (per-block language tag and copy button on fenced code), rounded code styling at both scales, inline-code padding, and three rendering fixes. One known issue ships with it, recorded below and in the README: the thin white seam across code blocks is still unresolved.

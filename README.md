@@ -1,29 +1,54 @@
 # MarkdownReader
 
-MarkdownReader is a small SwiftUI document app for opening and reading Markdown files on Apple platforms. It is currently closer to a minimal viewer than a polished product.
+MarkdownReader is a small SwiftUI document app for opening and reading Markdown files on macOS. It is currently closer to a minimal viewer than a polished product.
 
-Current release snapshot: `0.3.0`
+Current release snapshot: `0.4.0`
 
 ## Current Status
 
 - Opens `.md` and `.markdown` files through a document-based app flow.
-- Renders Markdown into one styled `NSAttributedString` shown in a read-only, fully selectable `NSTextView`, so text selects, copies, and searches across the whole document like a normal reader.
+- Renders the complete document in one `WKWebView`, so prose, tables, code blocks, and selection share one continuous layout surface.
 - Opens files in viewer mode rather than editor mode.
 - Uses a split-view reader with a toggleable table-of-contents sidebar for Markdown headings; selecting a heading scrolls the document to it.
-- Applies a restrained native reading style tuned for macOS.
-- Styles code as rounded chips and boxes: inline spans get padded, rounded highlights that stay clear of list indents when they wrap, and fenced blocks are rounded boxes carrying the fence's language tag and a per-block copy button.
+- Applies a GitHub-inspired reading style tuned for macOS, including properly padded tables, blockquotes, inline code, and fenced code blocks.
+- Provides persistent display options for font size, line spacing, System/Light/Dark theme, and syntax highlighting.
+- Highlights common programming languages offline with Highlight.js, using fenced language tags when present and automatic detection otherwise. Each fenced block includes its language and a copy button.
 - Disables document restoration so the app does not automatically reopen the last restored file on launch.
-- Still has product and release gaps around tests, some document-window polish, and more robust file handling.
+- Still has product and release gaps around automated UI coverage, some document-window polish, and more robust file handling.
 
 ## Stack
 
 - Swift
 - SwiftUI
 - `FileDocument` with `DocumentGroup`
-- AppKit `NSTextView` (via `NSViewRepresentable`) for native, document-wide text selection
-- Foundation `AttributedString(markdown:)` for parsing/rendering Markdown into `NSAttributedString`
-- [`swift-markdown-ui`](https://github.com/gonzalezreal/swift-markdown-ui) — retained as a dependency for planned native table/image embedding; not currently used for rendering
+- WebKit `WKWebView` (via `NSViewRepresentable`) for whole-document HTML rendering
+- [`swift-cmark`](https://github.com/swiftlang/swift-cmark) for safe CommonMark and GitHub-flavored Markdown HTML
+- A bundled offline Highlight.js build for language-aware syntax highlighting
 - Xcode project-based workflow
+
+## Build the macOS App
+
+Building requires a full Xcode installation. The app runs on macOS 15.1 or newer, and the first build needs internet access to download its Swift package dependencies.
+
+From the repository root, create a Release build with:
+
+```bash
+xcodebuild \
+  -project MarkdownReader.xcodeproj \
+  -scheme MarkdownReader \
+  -configuration Release \
+  -destination 'platform=macOS' \
+  -derivedDataPath .build \
+  clean build
+```
+
+The built app is written to `.build/Build/Products/Release/MarkdownReader.app`. Launch it with:
+
+```bash
+open .build/Build/Products/Release/MarkdownReader.app
+```
+
+To build in Xcode instead, open `MarkdownReader.xcodeproj`, select the **MarkdownReader** scheme and **My Mac** destination, then choose **Product → Build**. These steps produce a local development build; distributing the app to other Macs also requires the appropriate Apple signing and notarization workflow.
 
 ## Project Structure
 
@@ -35,15 +60,17 @@ Current release snapshot: `0.3.0`
 
 ## How It Works Today
 
-The app registers the Markdown UTI (`net.daringfireball.markdown`) and opens matching files in a viewer-only `DocumentGroup`. The document loader reads file contents as UTF-8 text. `MarkdownAttributedRenderer` converts that string into a single styled `NSAttributedString` (plus a heading table of contents with character ranges), which `SelectableMarkdownView` displays in a read-only `NSTextView`. The reader UI uses a split view with the heading-based table of contents in the sidebar; selecting a heading scrolls the text view to it.
+The app registers the Markdown UTI (`net.daringfireball.markdown`) and opens matching files in a viewer-only `DocumentGroup`. The document loader reads file contents as UTF-8 text. `MarkdownHTMLRenderer` converts the source to safe GFM HTML and extracts the heading outline. `MarkdownWebView` displays the entire document in one persistent `WKWebView`; the native sidebar scrolls it to generated heading anchors.
 
-Headings, paragraphs, lists, inline styles, code blocks, and blockquotes render as styled text; HTML comments are stripped; GFM tables render as native `NSTextTable` grids; and images are embedded as `NSTextAttachment`, resolved relative to the document's folder (the folder URL is passed in from the document scene). Unreadable images fall back to a `🖼 alt` placeholder.
+The HTML page and styling are generated locally. Raw Markdown HTML is disabled, a restrictive Content Security Policy blocks network content, and relative images are served from the document folder through a validated custom WebKit URL scheme. Parent-directory traversal and arbitrary app resources are rejected. External links open in the default browser.
+
+Reader preferences are stored with `AppStorage` and applied to the existing page without reloading it. Syntax highlighting also runs locally; an unsupported fenced language falls back to readable plain code.
 
 Because images live beside the document and the App Sandbox only grants access to the opened file, the **App Sandbox is disabled** so sibling resources can be read. This means the app is not sandboxed and is not Mac App Store eligible.
 
 ## Development Notes
 
-- `MarkdownAttributedRenderer` is covered by unit tests (`MarkdownReaderTests`, Swift Testing); the UI targets are still template placeholders.
+- `MarkdownHTMLRenderer`, the page wrapper, display-option bounds, and local-resource path validation are covered by unit tests (`MarkdownReaderTests`, Swift Testing); the UI targets are still template placeholders.
 - The app is a reader-only document viewer. The App Sandbox is disabled (see above) so images stored next to a Markdown file can be loaded.
 - `scripts/run-debug.sh` builds Debug and runs the app from the terminal (`scripts/run-debug.sh file.md` to open a document).
 
@@ -72,7 +99,7 @@ When these messages appear, use this check order:
 
 ## Next Likely Improvements
 
-- Polish rendering fidelity: a blockquote accent bar (still a flat fill). Code blocks and inline code are now rounded.
-- Known issue: a thin white seam can appear across a code block, under the language tag. Diagnosed as a partial-repaint gap in the box background, but not yet resolved — see the 2026-07-26 DEVLOG entry for what has been ruled out.
+- Refine the GitHub-inspired typography and spacing against a wider set of real documents.
+- Add focused UI coverage for the display popover, sidebar scrolling, code copying, and image lightbox.
 - Improve file decoding and error handling beyond UTF-8-only assumptions.
 - Refine document-window polish such as the unresolved `Locked` subtitle.
