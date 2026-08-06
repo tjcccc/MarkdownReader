@@ -3,6 +3,7 @@
 //  MarkdownReaderTests
 //
 
+import AppKit
 import Foundation
 import Testing
 @testable import MarkdownReader
@@ -116,6 +117,7 @@ struct MarkdownHTMLDocumentTests {
         let options = ReaderDisplayOptions(
             fontSize: 20,
             lineHeight: 1.8,
+            contentWidthPercentage: 80,
             theme: .dark,
             syntaxHighlighting: false
         )
@@ -130,6 +132,7 @@ struct MarkdownHTMLDocumentTests {
         #expect(page.contains("markdown-reader-resource://app/highlight.min.js"))
         #expect(page.contains("\"fontSize\":20"))
         #expect(page.contains("\"lineHeight\":1.8"))
+        #expect(page.contains("\"contentWidthPercentage\":80"))
         #expect(page.contains("\"syntaxHighlighting\":false"))
     }
 
@@ -137,12 +140,43 @@ struct MarkdownHTMLDocumentTests {
         let options = ReaderDisplayOptions(
             fontSize: 200,
             lineHeight: 0,
+            contentWidthPercentage: 2_000,
             theme: .system,
             syntaxHighlighting: true
         )
 
         #expect(options.fontSize == ReaderDisplayOptions.fontSizeRange.upperBound)
         #expect(options.lineHeight == ReaderDisplayOptions.lineHeightRange.lowerBound)
+        #expect(
+            options.contentWidthPercentage ==
+                ReaderDisplayOptions.contentWidthPercentageRange.upperBound
+        )
+        #expect(ReaderDisplayOptions.normalizedContentWidthPercentage(900) == 75)
+        #expect(ReaderDisplayOptions.normalizedContentWidthPercentage(1_000) == 85)
+        #expect(
+            ReaderDisplayOptions.normalizedContentWidthPercentage(.infinity) ==
+                ReaderDisplayOptions.defaultContentWidthPercentage
+        )
+    }
+
+    @Test @MainActor func windowAppearanceReturnsToSystemAfterDarkMode() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 320, height: 240),
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: false
+        )
+        let appearanceView = ReaderWindowAppearanceView(frame: .zero)
+        window.contentView = appearanceView
+
+        appearanceView.theme = .dark
+        #expect(window.appearance?.name == .darkAqua)
+
+        appearanceView.theme = .light
+        #expect(window.appearance?.name == .aqua)
+
+        appearanceView.theme = .system
+        #expect(window.appearance == nil)
     }
 }
 

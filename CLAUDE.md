@@ -11,7 +11,7 @@ A SwiftUI document-based **reader** (viewer, not editor) for Markdown files, mac
 - Swift 6 language mode (`SWIFT_VERSION = 6.0`), SwiftUI, `FileDocument` + `DocumentGroup`.
 - Deployment target: macOS 15.1 (`SDKROOT = auto`; project also lists iOS/visionOS as supported platforms, but the app is built and exercised on macOS).
 - Dependency: [`swift-cmark`](https://github.com/swiftlang/swift-cmark) 0.5.0 (`cmark-gfm` + extensions). Highlight.js 11.11.1 is bundled as an offline app resource.
-- Xcode project workflow (no SwiftPM manifest, no Makefile). Bundle id `com.taojiachun.MarkdownReader`, version in `MARKETING_VERSION` (currently 0.4.0).
+- Xcode project workflow (no SwiftPM manifest, no Makefile). Bundle id `com.taojiachun.MarkdownReader`, version in `MARKETING_VERSION` (currently 0.5.0).
 
 ## Layout
 
@@ -20,7 +20,7 @@ A SwiftUI document-based **reader** (viewer, not editor) for Markdown files, mac
 - `MarkdownReader/MarkdownHTMLRenderer.swift` — pure cmark-gfm Markdown→safe HTML conversion plus heading TOC extraction. Raw Markdown HTML stays disabled.
 - `MarkdownReader/MarkdownHTMLDocument.swift` — GitHub-inspired CSS and the small JavaScript bridge for live display settings, heading scrolling, code highlighting/copying, and image clicks.
 - `MarkdownReader/MarkdownWebView.swift` — the single `WKWebView`, external-link policy, native pasteboard/image bridge, and validated custom URL scheme for document-relative images and bundled resources.
-- `MarkdownReader/ReaderDisplayOptions.swift` — display preference model and native popover controls.
+- `MarkdownReader/ReaderDisplayOptions.swift` — display preference model, a stable AppKit `NSPopover` host, SwiftUI controls, and the per-window appearance bridge. Keep both AppKit boundaries: a SwiftUI toolbar popover is dismissed when a live preference binding changes on macOS, and `.preferredColorScheme(nil)` can leave a previously forced window dark instead of restoring System appearance.
 - `MarkdownReader/ContentView.swift` — `NavigationSplitView`, TOC selection, persisted `AppStorage` preferences, toolbar, and native image lightbox.
 - `MarkdownReaderTests/` — unit target, **Swift Testing** (`import Testing`, `@Test`). `MarkdownHTMLRendererTests` covers rendering, page security/settings, and resource path validation.
 - `MarkdownReaderUITests/` — UI target, **XCTest**. Placeholder only.

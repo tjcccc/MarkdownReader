@@ -1,5 +1,15 @@
 # DEVLOG
 
+## 2026-08-06
+
+- Release: cut `0.5.0` — minor bump over 0.4.0 for the stable display-options popover, responsive percentage-based reading width, correct System appearance restoration, and selection-safe wide-window layout.
+- Fixed the display-options panel closing as soon as a font-size or line-spacing slider changed. A SwiftUI popover attached directly to the toolbar item lost its presentation anchor whenever the parent `@AppStorage` binding invalidated the toolbar. The toolbar now uses a stable AppKit `NSPopover` shell with the existing SwiftUI controls hosted inside it, preserving live document updates and normal click-outside dismissal.
+- Polished the display-options layout: removed duplicate visible slider labels, separated each label/value header from its control, gave the sliders consistent spacing and width, right-aligned the compact theme picker, and retained explicit accessibility labels and values.
+- Fixed Dark → System leaving the document window dark on a light macOS system. The reader now sets each document window's AppKit appearance explicitly (`darkAqua`, `aqua`, or `nil`); System clears the override instead of relying on SwiftUI to retract a cached presentation preference. Added a regression test covering Dark → Light → System.
+- Added a persistent Reading width control (50–100% of the available reader area, 75% default). Narrow windows use the full available width automatically. The existing page updates in place when the slider changes, and pixel values saved by the initial implementation migrate to the equivalent percentage automatically. Removed the initial 1200px cap because it made the upper slider range converge in maximized and full-screen windows; every percentage step now produces a distinct width there.
+- Fixed cross-block WebKit selections painting across the wide centering gaps. The centered, padding-bearing body now owns the reading width and the Markdown root fills its content box, so WebKit's implicit block-separator highlight is bounded by the visible text column. A wide-viewport integration assertion keeps the body line box and Markdown edges aligned.
+- Verified in the Debug app against a real Markdown document: changing font size updates the persisted preference and rendered document while the popover remains open; line-spacing interaction also stays open; clicking the document dismisses the transient popover normally.
+
 ## 2026-08-05
 
 - Release: cut `0.4.0` — minor bump over 0.3.0 for the whole-document WebKit renderer, GitHub-inspired presentation, persistent display controls, and offline syntax highlighting.

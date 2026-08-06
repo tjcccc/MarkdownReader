@@ -112,12 +112,15 @@ enum MarkdownHTMLDocument {
 
             html {
               min-height: 100%;
+              padding: 0 48px;
               background: var(--canvas);
             }
 
             body {
               min-height: 100vh;
-              margin: 0;
+              width: var(--reader-content-width-percentage, 75%);
+              margin: 0 auto;
+              padding: 36px 0 72px;
               color: var(--foreground);
               background: var(--canvas);
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -131,9 +134,7 @@ enum MarkdownHTMLDocument {
             }
 
             .markdown-body {
-              width: min(900px, 100%);
-              margin: 0 auto;
-              padding: 36px 48px 72px;
+              width: 100%;
             }
 
             .markdown-body > :first-child {
@@ -419,8 +420,13 @@ enum MarkdownHTMLDocument {
             sub { bottom: -0.25em; }
 
             @media (max-width: 700px) {
-              .markdown-body {
-                padding: 28px 24px 56px;
+              html {
+                padding: 0 24px;
+              }
+
+              body {
+                width: 100%;
+                padding: 28px 0 56px;
               }
             }
           </style>
@@ -538,6 +544,12 @@ enum MarkdownHTMLDocument {
                 document.documentElement.style.setProperty(
                   '--reader-line-height', String(settings.lineHeight)
                 );
+                const contentWidthPercentage = Number(settings.contentWidthPercentage);
+                if (Number.isFinite(contentWidthPercentage)) {
+                  document.documentElement.style.setProperty(
+                    '--reader-content-width-percentage', `${contentWidthPercentage}%`
+                  );
+                }
                 applyHighlighting(Boolean(settings.syntaxHighlighting));
               }
 
@@ -565,6 +577,7 @@ enum MarkdownHTMLDocument {
         let object: [String: Any] = [
             "fontSize": options.fontSize,
             "lineHeight": options.lineHeight,
+            "contentWidthPercentage": options.contentWidthPercentage,
             "theme": options.theme.rawValue,
             "syntaxHighlighting": options.syntaxHighlighting,
         ]

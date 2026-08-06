@@ -2,7 +2,7 @@
 
 MarkdownReader is a small SwiftUI document app for opening and reading Markdown files on macOS. It is currently closer to a minimal viewer than a polished product.
 
-Current release snapshot: `0.4.0`
+Current release snapshot: `0.5.0`
 
 ## Current Status
 
@@ -11,7 +11,7 @@ Current release snapshot: `0.4.0`
 - Opens files in viewer mode rather than editor mode.
 - Uses a split-view reader with a toggleable table-of-contents sidebar for Markdown headings; selecting a heading scrolls the document to it.
 - Applies a GitHub-inspired reading style tuned for macOS, including properly padded tables, blockquotes, inline code, and fenced code blocks.
-- Provides persistent display options for font size, line spacing, System/Light/Dark theme, and syntax highlighting.
+- Provides persistent display options for font size, line spacing, reading width, System/Light/Dark theme, and syntax highlighting.
 - Highlights common programming languages offline with Highlight.js, using fenced language tags when present and automatic detection otherwise. Each fenced block includes its language and a copy button.
 - Disables document restoration so the app does not automatically reopen the last restored file on launch.
 - Still has product and release gaps around automated UI coverage, some document-window polish, and more robust file handling.
@@ -64,7 +64,7 @@ The app registers the Markdown UTI (`net.daringfireball.markdown`) and opens mat
 
 The HTML page and styling are generated locally. Raw Markdown HTML is disabled, a restrictive Content Security Policy blocks network content, and relative images are served from the document folder through a validated custom WebKit URL scheme. Parent-directory traversal and arbitrary app resources are rejected. External links open in the default browser.
 
-Reader preferences are stored with `AppStorage` and applied to the existing page without reloading it. Syntax highlighting also runs locally; an unsupported fenced language falls back to readable plain code.
+Reader preferences are stored with `AppStorage` and applied to the existing page without reloading it. Reading width controls a centered column from 50–100% of the available reader area (75% by default); every step remains effective in maximized and full-screen windows, while narrow windows use the full available width automatically. Syntax highlighting also runs locally; an unsupported fenced language falls back to readable plain code.
 
 Because images live beside the document and the App Sandbox only grants access to the opened file, the **App Sandbox is disabled** so sibling resources can be read. This means the app is not sandboxed and is not Mac App Store eligible.
 

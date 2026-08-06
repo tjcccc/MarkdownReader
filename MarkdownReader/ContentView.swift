@@ -26,10 +26,11 @@ struct ContentView: View {
     @State private var scrollAnchor: String?
     @State private var columnVisibility: NavigationSplitViewVisibility
     @State private var previewImage: NSImage?
-    @State private var showsDisplayOptions = false
 
     @AppStorage("reader.fontSize") private var fontSize = ReaderDisplayOptions.defaultFontSize
     @AppStorage("reader.lineHeight") private var lineHeight = ReaderDisplayOptions.defaultLineHeight
+    @AppStorage("reader.contentWidth") private var contentWidthPercentage =
+        ReaderDisplayOptions.defaultContentWidthPercentage
     @AppStorage("reader.theme") private var theme = ReaderTheme.system
     @AppStorage("reader.syntaxHighlighting") private var syntaxHighlighting = true
 
@@ -45,6 +46,7 @@ struct ContentView: View {
         ReaderDisplayOptions(
             fontSize: fontSize,
             lineHeight: lineHeight,
+            contentWidthPercentage: contentWidthPercentage,
             theme: theme,
             syntaxHighlighting: syntaxHighlighting
         )
@@ -89,20 +91,13 @@ struct ContentView: View {
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button {
-                    showsDisplayOptions.toggle()
-                } label: {
-                    Label("Display Options", systemImage: "textformat.size")
-                }
-                .help("Display Options")
-                .popover(isPresented: $showsDisplayOptions, arrowEdge: .bottom) {
-                    ReaderDisplayOptionsView(
-                        fontSize: $fontSize,
-                        lineHeight: $lineHeight,
-                        theme: $theme,
-                        syntaxHighlighting: $syntaxHighlighting
-                    )
-                }
+                ReaderDisplayOptionsToolbarButton(
+                    fontSize: $fontSize,
+                    lineHeight: $lineHeight,
+                    contentWidthPercentage: $contentWidthPercentage,
+                    theme: $theme,
+                    syntaxHighlighting: $syntaxHighlighting
+                )
             }
         }
         .overlay {
@@ -113,7 +108,18 @@ struct ContentView: View {
                 .transition(.opacity)
             }
         }
-        .preferredColorScheme(theme.colorScheme)
+        .background {
+            ReaderWindowAppearanceBridge(theme: theme)
+                .frame(width: 0, height: 0)
+        }
+        .onAppear {
+            let normalized = ReaderDisplayOptions.normalizedContentWidthPercentage(
+                contentWidthPercentage
+            )
+            if normalized != contentWidthPercentage {
+                contentWidthPercentage = normalized
+            }
+        }
     }
 }
 

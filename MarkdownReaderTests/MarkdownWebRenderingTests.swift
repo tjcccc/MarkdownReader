@@ -34,6 +34,12 @@ struct MarkdownWebRenderingTests {
         let codeBlockCount: Int
         let highlightedTokenCount: Int
         let fontSize: String
+        let contentWidth: String
+        let bodyLeft: Double
+        let bodyContentLeft: Double
+        let bodyContentRight: Double
+        let markdownLeft: Double
+        let markdownRight: Double
         let theme: String
         let imageLoaded: Bool
     }
@@ -80,6 +86,7 @@ struct MarkdownWebRenderingTests {
         let options = ReaderDisplayOptions(
             fontSize: 18,
             lineHeight: 1.7,
+            contentWidthPercentage: 75,
             theme: .dark,
             syntaxHighlighting: true
         )
@@ -93,7 +100,7 @@ struct MarkdownWebRenderingTests {
             forURLScheme: MarkdownResourceResolver.scheme
         )
         let webView = WKWebView(
-            frame: NSRect(x: 0, y: 0, width: 1000, height: 900),
+            frame: NSRect(x: 0, y: 0, width: 2000, height: 900),
             configuration: configuration
         )
         let waiter = NavigationWaiter()
@@ -110,15 +117,30 @@ struct MarkdownWebRenderingTests {
         let diagnosticsJSON = try #require(
             try await webView.evaluateJavaScript(
                 """
-                JSON.stringify({
-                  tableCount: document.querySelectorAll('table').length,
-                  codeBlockCount: document.querySelectorAll('.code-block').length,
-                  highlightedTokenCount: document.querySelectorAll('[class^="hljs-"]').length,
-                  fontSize: getComputedStyle(document.body).fontSize,
-                  theme: document.documentElement.dataset.theme,
-                  imageLoaded: Boolean(document.querySelector('img')?.complete &&
-                    document.querySelector('img')?.naturalWidth > 0)
-                })
+                (() => {
+                  const body = document.body;
+                  const markdown = document.querySelector('.markdown-body');
+                  const bodyRect = body.getBoundingClientRect();
+                  const markdownRect = markdown.getBoundingClientRect();
+                  const bodyStyle = getComputedStyle(body);
+                  const paddingLeft = parseFloat(bodyStyle.paddingLeft);
+                  const paddingRight = parseFloat(bodyStyle.paddingRight);
+                  return JSON.stringify({
+                    tableCount: document.querySelectorAll('table').length,
+                    codeBlockCount: document.querySelectorAll('.code-block').length,
+                    highlightedTokenCount: document.querySelectorAll('[class^="hljs-"]').length,
+                    fontSize: bodyStyle.fontSize,
+                    contentWidth: markdownRect.width + 'px',
+                    bodyLeft: bodyRect.left,
+                    bodyContentLeft: bodyRect.left + paddingLeft,
+                    bodyContentRight: bodyRect.right - paddingRight,
+                    markdownLeft: markdownRect.left,
+                    markdownRight: markdownRect.right,
+                    theme: document.documentElement.dataset.theme,
+                    imageLoaded: Boolean(document.querySelector('img')?.complete &&
+                      document.querySelector('img')?.naturalWidth > 0)
+                  });
+                })()
                 """
             ) as? String
         )
@@ -131,6 +153,10 @@ struct MarkdownWebRenderingTests {
         #expect(diagnostics.codeBlockCount == 2)
         #expect(diagnostics.highlightedTokenCount > 0)
         #expect(diagnostics.fontSize == "18px")
+        #expect(diagnostics.contentWidth == "1428px")
+        #expect(diagnostics.bodyLeft > 0)
+        #expect(abs(diagnostics.bodyContentLeft - diagnostics.markdownLeft) < 0.5)
+        #expect(abs(diagnostics.bodyContentRight - diagnostics.markdownRight) < 0.5)
         #expect(diagnostics.theme == "dark")
         #expect(diagnostics.imageLoaded)
 
@@ -139,6 +165,7 @@ struct MarkdownWebRenderingTests {
             window.reader.applySettings({
               fontSize: 14,
               lineHeight: 1.3,
+              contentWidthPercentage: 100,
               theme: 'light',
               syntaxHighlighting: false
             });
@@ -149,6 +176,7 @@ struct MarkdownWebRenderingTests {
                 """
                 JSON.stringify({
                   fontSize: getComputedStyle(document.body).fontSize,
+                  contentWidth: document.querySelector('.markdown-body').getBoundingClientRect().width + 'px',
                   theme: document.documentElement.dataset.theme,
                   highlightedBlocks: document.querySelectorAll('code.hljs').length
                 })
@@ -157,8 +185,17 @@ struct MarkdownWebRenderingTests {
         )
 
         #expect(updatedState.contains("\"fontSize\":\"14px\""))
+        #expect(updatedState.contains("\"contentWidth\":\"1904px\""))
         #expect(updatedState.contains("\"theme\":\"light\""))
         #expect(updatedState.contains("\"highlightedBlocks\":0"))
+
+        webView.setFrameSize(NSSize(width: 600, height: 900))
+        let narrowContentWidth = try #require(
+            try await webView.evaluateJavaScript(
+                "document.querySelector('.markdown-body').getBoundingClientRect().width"
+            ) as? Double
+        )
+        #expect(abs(narrowContentWidth - 552) < 0.5)
 
     }
 

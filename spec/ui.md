@@ -22,8 +22,8 @@ This document records the current UI conventions of the existing app. It describ
 
 Observed:
 - The UI is intentionally minimal and almost entirely system-default.
-- The main content is one vertically scrollable HTML document with a constrained `900px` reading width.
-- Markdown content uses `48px` horizontal, `36px` top, and `72px` bottom padding; the horizontal inset contracts to `24px` in narrow windows.
+- The main content is one vertically scrollable HTML document with an adjustable `50–100%` reading width (`75%` default), measured within the available reader area without an absolute width cap.
+- The HTML canvas supplies `48px` horizontal gutters while the centered reading frame supplies `36px` top and `72px` bottom padding. The horizontal gutter contracts to `24px` in narrow windows, where the reading frame uses the full available width. All centering space stays outside the frame so cross-block WebKit selection does not paint into it.
 - Window sizing is constrained with a minimum frame of `720x520` and a default size of `1200x820`.
 - The sidebar defaults to hidden for smaller outlines and auto-opens for documents with a more meaningful heading count.
 - A restrained native toolbar button opens display options without permanently occupying reading space.
@@ -39,10 +39,10 @@ Observed:
 - No custom colors are defined in the accent color asset.
 - The HTML renderer defines a compact CSS token layer for canvas, text, muted text, borders, code surfaces, selection, and syntax colors in light and dark appearances.
 - The document uses a GitHub-inspired hierarchy: system body text, bordered H1/H2 headings, padded grid tables, border-accented blockquotes, rounded code surfaces, and restrained link color.
-- Font size, line height, System/Light/Dark appearance, and syntax highlighting are user-adjustable and persisted.
+- Font size, line height, reading width, System/Light/Dark appearance, and syntax highlighting are user-adjustable and persisted.
 
 Current visible spacing:
-- Reader inset: `48px` horizontal, `36px` top, `72px` bottom
+- Reader gutter: `48px` horizontal; reading-frame inset: `36px` top, `72px` bottom
 - Sidebar width hint: min `180`, ideal `240`, max `420`
 
 ## Layout Conventions
@@ -50,6 +50,7 @@ Current visible spacing:
 - A single document window hosts the reading view.
 - The main reader uses `NavigationSplitView` with a sidebar and detail pane.
 - The entire rendered document lives in one persistent `WKWebView`; there are no per-block web views or parallel native text layout.
+- The HTML canvas owns the fixed horizontal gutter; the centered body owns the percentage width and vertical padding. The body's line box and the Markdown root share the same horizontal edges so browser selection remains within the reading column.
 - The sidebar shows a heading-based table of contents derived from the cmark document tree and scrolls the web document to stable generated anchors.
 - Image previews remain a native full-window overlay.
 
@@ -64,7 +65,10 @@ Current visible spacing:
 
 Observed:
 - The current app interaction model is passive reading only.
-- A toolbar popover provides font-size, line-spacing, theme, syntax-highlighting, and reset controls.
+- A toolbar button presents a transient native `NSPopover` containing SwiftUI controls for font size, line spacing, reading width, theme, syntax highlighting, and reset. The popover remains open while settings update the document live and dismisses when the reader is clicked.
+- Font-size and line-spacing controls use one visible header/value row and a separate full-width slider row; slider accessibility labels must not appear as duplicate visible labels.
+- Theme uses a compact segmented control aligned to the trailing edge of its row. Reading width changes the centered column as a percentage of the available reader area; every step remains distinct in maximized and full-screen windows, while narrow windows use the full available width.
+- Theme applies to the complete document window. System explicitly clears the window's appearance override so it immediately follows the current macOS appearance after Light or Dark was selected.
 - The document scene is configured in viewer mode rather than editor mode.
 - The standard macOS sidebar toggle is exposed through the `View` menu via `SidebarCommands`.
 - Scene restoration is disabled so the app does not restore the last document window automatically on launch.
