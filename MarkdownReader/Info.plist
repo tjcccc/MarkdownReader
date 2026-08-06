@@ -5,6 +5,8 @@
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Markdown File</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
@@ -30,8 +32,8 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>.md</string>
-					<string>.markdown</string>
+					<string>md</string>
+					<string>markdown</string>
 				</array>
 			</dict>
 		</dict>

@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		221982362CFD9DB200013B66 /* cmark-gfm in Frameworks */ = {isa = PBXBuildFile; productRef = 221982352CFD9DB200013B66 /* cmark-gfm */; };
 		A1B2C3D42E3A000000000001 /* cmark-gfm-extensions in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D42E3A000000000002 /* cmark-gfm-extensions */; };
+		B10000012E50000000000001 /* cmark-gfm in Frameworks */ = {isa = PBXBuildFile; productRef = B10000122E50000000000012 /* cmark-gfm */; };
+		B10000022E50000000000002 /* cmark-gfm-extensions in Frameworks */ = {isa = PBXBuildFile; productRef = B10000132E50000000000013 /* cmark-gfm-extensions */; };
+		B10000032E50000000000003 /* MarkdownReaderQuickLook.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B10000052E50000000000005 /* MarkdownReaderQuickLook.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -26,12 +29,34 @@
 			remoteGlobalIDString = 221982002CFD9D5100013B66;
 			remoteInfo = MarkdownReader;
 		};
+		B10000042E50000000000004 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 221981F92CFD9D5100013B66 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B100000B2E5000000000000B;
+			remoteInfo = MarkdownReaderQuickLook;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B100000A2E5000000000000A /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				B10000032E50000000000003 /* MarkdownReaderQuickLook.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		221982012CFD9D5100013B66 /* MarkdownReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarkdownReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		221982152CFD9D5100013B66 /* MarkdownReaderTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MarkdownReaderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2219821F2CFD9D5100013B66 /* MarkdownReaderUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MarkdownReaderUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000052E50000000000005 /* MarkdownReaderQuickLook.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MarkdownReaderQuickLook.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -41,6 +66,13 @@
 				Info.plist,
 			);
 			target = 221982002CFD9D5100013B66 /* MarkdownReader */;
+		};
+		B10000062E50000000000006 /* Exceptions for "MarkdownReaderQuickLook" folder in "MarkdownReaderQuickLook" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B100000B2E5000000000000B /* MarkdownReaderQuickLook */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -61,6 +93,19 @@
 		221982222CFD9D5100013B66 /* MarkdownReaderUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = MarkdownReaderUITests;
+			sourceTree = "<group>";
+		};
+		B10000072E50000000000007 /* MarkdownReaderShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MarkdownReaderShared;
+			sourceTree = "<group>";
+		};
+		B10000082E50000000000008 /* MarkdownReaderQuickLook */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B10000062E50000000000006 /* Exceptions for "MarkdownReaderQuickLook" folder in "MarkdownReaderQuickLook" target */,
+			);
+			path = MarkdownReaderQuickLook;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -89,6 +134,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B10000092E50000000000009 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000012E50000000000001 /* cmark-gfm in Frameworks */,
+				B10000022E50000000000002 /* cmark-gfm-extensions in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -96,6 +150,8 @@
 			isa = PBXGroup;
 			children = (
 				221982032CFD9D5100013B66 /* MarkdownReader */,
+				B10000072E50000000000007 /* MarkdownReaderShared */,
+				B10000082E50000000000008 /* MarkdownReaderQuickLook */,
 				221982182CFD9D5100013B66 /* MarkdownReaderTests */,
 				221982222CFD9D5100013B66 /* MarkdownReaderUITests */,
 				221982342CFD9DB200013B66 /* Frameworks */,
@@ -107,6 +163,7 @@
 			isa = PBXGroup;
 			children = (
 				221982012CFD9D5100013B66 /* MarkdownReader.app */,
+				B10000052E50000000000005 /* MarkdownReaderQuickLook.appex */,
 				221982152CFD9D5100013B66 /* MarkdownReaderTests.xctest */,
 				2219821F2CFD9D5100013B66 /* MarkdownReaderUITests.xctest */,
 			);
@@ -130,13 +187,16 @@
 				221981FD2CFD9D5100013B66 /* Sources */,
 				221981FE2CFD9D5100013B66 /* Frameworks */,
 				221981FF2CFD9D5100013B66 /* Resources */,
+				B100000A2E5000000000000A /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				B100000E2E5000000000000E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				221982032CFD9D5100013B66 /* MarkdownReader */,
+				B10000072E50000000000007 /* MarkdownReaderShared */,
 			);
 			name = MarkdownReader;
 			packageProductDependencies = (
@@ -193,6 +253,31 @@
 			productReference = 2219821F2CFD9D5100013B66 /* MarkdownReaderUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		B100000B2E5000000000000B /* MarkdownReaderQuickLook */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B10000112E50000000000011 /* Build configuration list for PBXNativeTarget "MarkdownReaderQuickLook" */;
+			buildPhases = (
+				B100000D2E5000000000000D /* Sources */,
+				B10000092E50000000000009 /* Frameworks */,
+				B100000C2E5000000000000C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B10000072E50000000000007 /* MarkdownReaderShared */,
+				B10000082E50000000000008 /* MarkdownReaderQuickLook */,
+			);
+			name = MarkdownReaderQuickLook;
+			packageProductDependencies = (
+				B10000122E50000000000012 /* cmark-gfm */,
+				B10000132E50000000000013 /* cmark-gfm-extensions */,
+			);
+			productName = MarkdownReaderQuickLook;
+			productReference = B10000052E50000000000005 /* MarkdownReaderQuickLook.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -214,6 +299,9 @@
 						CreatedOnToolsVersion = 16.1;
 						TestTargetID = 221982002CFD9D5100013B66;
 					};
+					B100000B2E5000000000000B = {
+						CreatedOnToolsVersion = 26.3;
+					};
 				};
 			};
 			buildConfigurationList = 221981FC2CFD9D5100013B66 /* Build configuration list for PBXProject "MarkdownReader" */;
@@ -234,6 +322,7 @@
 			projectRoot = "";
 			targets = (
 				221982002CFD9D5100013B66 /* MarkdownReader */,
+				B100000B2E5000000000000B /* MarkdownReaderQuickLook */,
 				221982142CFD9D5100013B66 /* MarkdownReaderTests */,
 				2219821E2CFD9D5100013B66 /* MarkdownReaderUITests */,
 			);
@@ -256,6 +345,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		2219821D2CFD9D5100013B66 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B100000C2E5000000000000C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -286,6 +382,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B100000D2E5000000000000D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -298,6 +401,11 @@
 			isa = PBXTargetDependency;
 			target = 221982002CFD9D5100013B66 /* MarkdownReader */;
 			targetProxy = 221982202CFD9D5100013B66 /* PBXContainerItemProxy */;
+		};
+		B100000E2E5000000000000E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B100000B2E5000000000000B /* MarkdownReaderQuickLook */;
+			targetProxy = B10000042E50000000000004 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -334,7 +442,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taojiachun.MarkdownReader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -378,7 +486,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taojiachun.MarkdownReader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -518,7 +626,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taojiachun.MarkdownReaderTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -541,7 +649,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taojiachun.MarkdownReaderTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -563,7 +671,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taojiachun.MarkdownReaderUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -585,7 +693,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
-				MARKETING_VERSION = 0.5.0;
+				MARKETING_VERSION = 0.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.taojiachun.MarkdownReaderUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
@@ -595,6 +703,60 @@
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				TEST_TARGET_NAME = MarkdownReader;
 				XROS_DEPLOYMENT_TARGET = 2.1;
+			};
+			name = Release;
+		};
+		B100000F2E5000000000000F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = MarkdownReaderQuickLook/MarkdownReaderQuickLook.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MarkdownReaderQuickLook/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.1;
+				MARKETING_VERSION = 0.6.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.taojiachun.MarkdownReader.QuickLookPreview;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		B10000102E50000000000010 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = MarkdownReaderQuickLook/MarkdownReaderQuickLook.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MarkdownReaderQuickLook/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.1;
+				MARKETING_VERSION = 0.6.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.taojiachun.MarkdownReader.QuickLookPreview;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
@@ -637,6 +799,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		B10000112E50000000000011 /* Build configuration list for PBXNativeTarget "MarkdownReaderQuickLook" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B100000F2E5000000000000F /* Debug */,
+				B10000102E50000000000010 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -657,6 +828,16 @@
 			productName = "cmark-gfm";
 		};
 		A1B2C3D42E3A000000000002 /* cmark-gfm-extensions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 221982332CFD9D6F00013B66 /* XCRemoteSwiftPackageReference "swift-cmark" */;
+			productName = "cmark-gfm-extensions";
+		};
+		B10000122E50000000000012 /* cmark-gfm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 221982332CFD9D6F00013B66 /* XCRemoteSwiftPackageReference "swift-cmark" */;
+			productName = "cmark-gfm";
+		};
+		B10000132E50000000000013 /* cmark-gfm-extensions */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 221982332CFD9D6F00013B66 /* XCRemoteSwiftPackageReference "swift-cmark" */;
 			productName = "cmark-gfm-extensions";

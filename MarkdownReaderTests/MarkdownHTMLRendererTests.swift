@@ -159,6 +159,31 @@ struct MarkdownHTMLDocumentTests {
         )
     }
 
+    @Test func quickLookPageIsSelfContainedScriptFreeAndSystemThemed() {
+        let rendered = MarkdownHTMLRenderer.render(
+            """
+            # Preview
+
+            | A | B |
+            | - | - |
+            | one | two |
+
+            ```swift
+            let preview = true
+            ```
+            """
+        )
+        let page = MarkdownQuickLookHTMLDocument.make(bodyHTML: rendered.bodyHTML)
+
+        #expect(page.contains("<h1>Preview</h1>"))
+        #expect(page.contains("<table>"))
+        #expect(page.contains("<pre><code class=\"language-swift\">"))
+        #expect(page.contains("prefers-color-scheme: dark"))
+        #expect(page.contains("default-src 'none'"))
+        #expect(!page.contains("<script"))
+        #expect(!page.contains("markdown-reader-resource:"))
+    }
+
     @Test @MainActor func windowAppearanceReturnsToSystemAfterDarkMode() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 320, height: 240),

@@ -1,9 +1,9 @@
 //
 //  MarkdownHTMLRenderer.swift
-//  MarkdownReader
+//  MarkdownReaderShared
 //
-//  Converts Markdown to safe GitHub-flavoured HTML for the app's single
-//  WKWebView and extracts the heading outline used by the native sidebar.
+//  Converts Markdown to safe GitHub-flavoured HTML for the app and Quick Look
+//  extension, and extracts the heading outline used by the native sidebar.
 //
 
 import Darwin

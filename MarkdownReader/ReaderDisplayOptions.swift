@@ -111,7 +111,7 @@ struct ReaderDisplayOptions: Equatable {
     }
 }
 
-struct ReaderDisplayOptionsToolbarButton: NSViewRepresentable {
+struct ReaderSettingsToolbarButton: NSViewRepresentable {
     @Binding var fontSize: Double
     @Binding var lineHeight: Double
     @Binding var contentWidthPercentage: Double
@@ -125,8 +125,8 @@ struct ReaderDisplayOptionsToolbarButton: NSViewRepresentable {
     func makeNSView(context: Context) -> NSButton {
         let button = NSButton(
             image: NSImage(
-                systemSymbolName: "textformat.size",
-                accessibilityDescription: "Display Options"
+                systemSymbolName: "gearshape",
+                accessibilityDescription: "Reader Settings"
             ) ?? NSImage(),
             target: context.coordinator,
             action: #selector(Coordinator.togglePopover(_:))
@@ -134,9 +134,9 @@ struct ReaderDisplayOptionsToolbarButton: NSViewRepresentable {
         button.bezelStyle = .toolbar
         button.imagePosition = .imageOnly
         button.imageScaling = .scaleProportionallyDown
-        button.toolTip = "Display Options"
-        button.setAccessibilityLabel("Display Options")
-        button.setAccessibilityIdentifier("display-options-button")
+        button.toolTip = "Reader Settings"
+        button.setAccessibilityLabel("Reader Settings")
+        button.setAccessibilityIdentifier("reader-settings-button")
         return button
     }
 
@@ -145,8 +145,8 @@ struct ReaderDisplayOptionsToolbarButton: NSViewRepresentable {
         context.coordinator.updateContent(content)
     }
 
-    private var content: ReaderDisplayOptionsView {
-        ReaderDisplayOptionsView(
+    private var content: ReaderSettingsView {
+        ReaderSettingsView(
             fontSize: $fontSize,
             lineHeight: $lineHeight,
             contentWidthPercentage: $contentWidthPercentage,
@@ -158,13 +158,13 @@ struct ReaderDisplayOptionsToolbarButton: NSViewRepresentable {
     @MainActor
     final class Coordinator: NSObject {
         private let popover: NSPopover
-        private let hostingController: NSHostingController<ReaderDisplayOptionsView>
+        private let hostingController: NSHostingController<ReaderSettingsView>
 
         fileprivate var isPopoverShown: Bool {
             popover.isShown
         }
 
-        init(content: ReaderDisplayOptionsView) {
+        init(content: ReaderSettingsView) {
             hostingController = NSHostingController(rootView: content)
             popover = NSPopover()
             super.init()
@@ -174,7 +174,7 @@ struct ReaderDisplayOptionsToolbarButton: NSViewRepresentable {
             popover.contentViewController = hostingController
         }
 
-        fileprivate func updateContent(_ content: ReaderDisplayOptionsView) {
+        fileprivate func updateContent(_ content: ReaderSettingsView) {
             hostingController.rootView = content
         }
 
@@ -190,7 +190,7 @@ struct ReaderDisplayOptionsToolbarButton: NSViewRepresentable {
     }
 }
 
-struct ReaderDisplayOptionsView: View {
+struct ReaderSettingsView: View {
     @Binding var fontSize: Double
     @Binding var lineHeight: Double
     @Binding var contentWidthPercentage: Double
@@ -199,7 +199,7 @@ struct ReaderDisplayOptionsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Display")
+            Text("Settings")
                 .font(.headline)
 
             VStack(alignment: .leading, spacing: 8) {
@@ -293,6 +293,28 @@ struct ReaderDisplayOptionsView: View {
 
             Divider()
 
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 12) {
+                    Text("Quick Look Preview")
+
+                    Spacer()
+
+                    Button("Manage…") {
+                        openQuickLookExtensionSettings()
+                    }
+                    .accessibilityHint(
+                        "Opens macOS settings where the Quick Look extension can be enabled or disabled."
+                    )
+                }
+
+                Text("Preview Markdown files in Finder by pressing Space. Managed by macOS.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Divider()
+
             HStack {
                 Spacer()
                 Button("Reset") {
@@ -307,5 +329,17 @@ struct ReaderDisplayOptionsView: View {
         .controlSize(.regular)
         .padding(20)
         .frame(width: 332)
+    }
+
+    private func openQuickLookExtensionSettings() {
+        if let extensionsURL = URL(
+            string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension"
+        ), NSWorkspace.shared.open(extensionsURL) {
+            return
+        }
+
+        NSWorkspace.shared.open(
+            URL(fileURLWithPath: "/System/Applications/System Settings.app")
+        )
     }
 }

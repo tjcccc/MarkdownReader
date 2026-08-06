@@ -15,6 +15,7 @@ This document records the current UI conventions of the existing app. It describ
 - SwiftUI for app structure and layout
 - `DocumentGroup` for document window management
 - One AppKit `WKWebView` for whole-document Markdown rendering
+- A data-based Quick Look extension returning self-contained HTML for Finder previews
 - `cmark-gfm` for safe GitHub-flavored HTML and a bundled Highlight.js build for code syntax
 - Asset catalog present, but no meaningful custom visual tokens are currently defined
 
@@ -26,7 +27,7 @@ Observed:
 - The HTML canvas supplies `48px` horizontal gutters while the centered reading frame supplies `36px` top and `72px` bottom padding. The horizontal gutter contracts to `24px` in narrow windows, where the reading frame uses the full available width. All centering space stays outside the frame so cross-block WebKit selection does not paint into it.
 - Window sizing is constrained with a minimum frame of `720x520` and a default size of `1200x820`.
 - The sidebar defaults to hidden for smaller outlines and auto-opens for documents with a more meaningful heading count.
-- A restrained native toolbar button opens display options without permanently occupying reading space.
+- A restrained native gear button opens reader settings without permanently occupying reading space.
 
 Inferred:
 - The app currently prioritizes simplicity over product polish.
@@ -53,6 +54,7 @@ Current visible spacing:
 - The HTML canvas owns the fixed horizontal gutter; the centered body owns the percentage width and vertical padding. The body's line box and the Markdown root share the same horizontal edges so browser selection remains within the reading column.
 - The sidebar shows a heading-based table of contents derived from the cmark document tree and scrolls the web document to stable generated anchors.
 - Image previews remain a native full-window overlay.
+- Finder Quick Look uses a separate system-owned preview window with no app sidebar or reader toolbar; macOS supplies its own title bar, sharing controls, and Open With action.
 
 ## Component Conventions
 
@@ -65,7 +67,9 @@ Current visible spacing:
 
 Observed:
 - The current app interaction model is passive reading only.
-- A toolbar button presents a transient native `NSPopover` containing SwiftUI controls for font size, line spacing, reading width, theme, syntax highlighting, and reset. The popover remains open while settings update the document live and dismisses when the reader is clicked.
+- A gear-shaped Reader Settings toolbar button presents a transient native `NSPopover` containing SwiftUI controls for font size, line spacing, reading width, theme, syntax highlighting, and reset. The broader settings identity leaves room for future reader integrations without changing the control again. The popover remains open while settings update the document live and dismisses when the reader is clicked.
+- The Reader Settings popover includes a Quick Look Preview section explaining the Space-bar workflow and a Manage action that opens macOS extension settings. Activation remains system-controlled; the app does not present a duplicate enable toggle.
+- The Quick Look document surface follows the current system appearance and uses the same GitHub-inspired hierarchy, but intentionally omits the sidebar, reader controls, JavaScript syntax highlighting, and app-specific copy/image interactions.
 - Font-size and line-spacing controls use one visible header/value row and a separate full-width slider row; slider accessibility labels must not appear as duplicate visible labels.
 - Theme uses a compact segmented control aligned to the trailing edge of its row. Reading width changes the centered column as a percentage of the available reader area; every step remains distinct in maximized and full-screen windows, while narrow windows use the full available width.
 - Theme applies to the complete document window. System explicitly clears the window's appearance override so it immediately follows the current macOS appearance after Light or Dark was selected.

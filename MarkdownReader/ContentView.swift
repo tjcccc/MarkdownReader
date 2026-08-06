@@ -91,7 +91,7 @@ struct ContentView: View {
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                ReaderDisplayOptionsToolbarButton(
+                ReaderSettingsToolbarButton(
                     fontSize: $fontSize,
                     lineHeight: $lineHeight,
                     contentWidthPercentage: $contentWidthPercentage,
