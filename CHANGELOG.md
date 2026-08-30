@@ -2,6 +2,17 @@
 
 Notable user-facing and release changes are recorded here. Dates use `YYYY-MM-DD`.
 
+## Unreleased
+
+## 0.6.1 - 2026-08-30
+
+### Fixed
+
+- Enabled copying from Finder Quick Look Markdown previews with continuous WebKit selection and ⌘A/⌘C routing.
+- Removed the custom Quick Look hint and Copy All bar so the preview contains only the document.
+- Replaced Quick Look's lossy AppKit HTML-to-rich-text import with script-disabled WebKit typesetting so it preserves the app's document hierarchy, spacing, lists, code surfaces, and complete frontmatter panel.
+- Rendered leading YAML frontmatter as a compact, syntax-highlighted metadata panel without a disclosure or copy toolbar.
+
 ## 0.6.0 - 2026-08-06
 
 ### Added

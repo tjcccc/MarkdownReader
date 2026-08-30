@@ -2,23 +2,26 @@
 //  MarkdownQuickLookHTMLDocument.swift
 //  MarkdownReaderShared
 //
-//  Builds a self-contained, script-free HTML preview for macOS Quick Look.
+//  Builds the self-contained, script-free page hosted by Quick Look.
 //
 
 import Foundation
 
 enum MarkdownQuickLookHTMLDocument {
     static func make(bodyHTML: String) -> String {
-        #"""
+        let safeBodyHTML = replacingImages(in: bodyHTML)
+
+        return #"""
         <!doctype html>
-        <html>
+        <html data-theme="system">
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1">
-          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: cid:; style-src 'unsafe-inline'">
+          <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'none'; style-src 'unsafe-inline'">
           <style>
-            :root {
-              color-scheme: light dark;
+            :root,
+            html[data-theme="system"] {
+              color-scheme: light;
               --canvas: #ffffff;
               --foreground: #1f2328;
               --muted: #59636e;
@@ -32,7 +35,8 @@ enum MarkdownQuickLookHTMLDocument {
             }
 
             @media (prefers-color-scheme: dark) {
-              :root {
+              html[data-theme="system"] {
+                color-scheme: dark;
                 --canvas: #0d1117;
                 --foreground: #e6edf3;
                 --muted: #9198a1;
@@ -52,20 +56,20 @@ enum MarkdownQuickLookHTMLDocument {
 
             html {
               min-height: 100%;
-              padding: 0 32px;
+              padding: 0 48px;
               background: var(--canvas);
             }
 
             body {
               min-height: 100vh;
-              width: 100%;
-              margin: 0;
-              padding: 28px 0 52px;
+              width: 75%;
+              margin: 0 auto;
+              padding: 36px 0 72px;
               color: var(--foreground);
               background: var(--canvas);
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-              font-size: 16px;
-              line-height: 1.55;
+              font-size: 17px;
+              line-height: 1.6;
               overflow-wrap: break-word;
             }
 
@@ -88,6 +92,10 @@ enum MarkdownQuickLookHTMLDocument {
             a {
               color: var(--accent);
               text-decoration: none;
+            }
+
+            a:hover {
+              text-decoration: underline;
             }
 
             p,
@@ -161,6 +169,10 @@ enum MarkdownQuickLookHTMLDocument {
               margin-top: 0.25em;
             }
 
+            li > p {
+              margin-top: 1em;
+            }
+
             .task-list-item {
               list-style: none;
             }
@@ -217,7 +229,7 @@ enum MarkdownQuickLookHTMLDocument {
               white-space: break-spaces;
             }
 
-            pre {
+            pre:not(.frontmatter) {
               padding: 16px;
               overflow: auto;
               border-radius: 8px;
@@ -227,7 +239,7 @@ enum MarkdownQuickLookHTMLDocument {
               tab-size: 4;
             }
 
-            pre code {
+            pre:not(.frontmatter) code {
               display: block;
               min-width: max-content;
               padding: 0;
@@ -236,29 +248,84 @@ enum MarkdownQuickLookHTMLDocument {
               white-space: pre;
             }
 
-            img {
-              max-width: 100%;
-              height: auto;
-              border-radius: 6px;
+            pre.frontmatter {
+              margin: 0 0 1.4em;
+              padding: 14px 16px;
+              overflow: auto;
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              background: var(--code-bg);
+              font-size: 0.82em;
+              line-height: 1.5;
+              tab-size: 2;
             }
 
-            @media (max-width: 600px) {
+            pre.frontmatter code {
+              display: block;
+              min-width: max-content;
+              padding: 0;
+              color: inherit;
+              background: transparent;
+              white-space: pre;
+            }
+
+            .image-placeholder {
+              color: var(--muted);
+              font-style: italic;
+            }
+
+            sub,
+            sup {
+              position: relative;
+              vertical-align: baseline;
+              font-size: 0.75em;
+              line-height: 0;
+            }
+
+            sup { top: -0.5em; }
+            sub { bottom: -0.25em; }
+
+            @media (max-width: 700px) {
               html {
-                padding: 0 20px;
+                padding: 0 24px;
               }
 
               body {
-                padding: 22px 0 44px;
+                width: 100%;
+                padding: 28px 0 56px;
               }
             }
           </style>
         </head>
         <body>
           <main class="markdown-body">
-        \#(bodyHTML)
+        \#(safeBodyHTML)
           </main>
         </body>
         </html>
         """#
     }
+
+    private static func replacingImages(in bodyHTML: String) -> String {
+        let fullRange = NSRange(bodyHTML.startIndex..., in: bodyHTML)
+        let withAltText = imageWithAltTextPattern.stringByReplacingMatches(
+            in: bodyHTML,
+            range: fullRange,
+            withTemplate: #"<span class="image-placeholder">&#x1F5BC; $1</span>"#
+        )
+        return imagePattern.stringByReplacingMatches(
+            in: withAltText,
+            range: NSRange(withAltText.startIndex..., in: withAltText),
+            withTemplate: #"<span class="image-placeholder">&#x1F5BC; Image</span>"#
+        )
+    }
+
+    private static let imageWithAltTextPattern = try! NSRegularExpression(
+        pattern: #"<img\b(?=[^>]*\balt="([^"]*)")[^>]*>"#,
+        options: .caseInsensitive
+    )
+    private static let imagePattern = try! NSRegularExpression(
+        pattern: #"<img\b[^>]*>"#,
+        options: .caseInsensitive
+    )
 }

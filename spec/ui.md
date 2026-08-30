@@ -15,7 +15,7 @@ This document records the current UI conventions of the existing app. It describ
 - SwiftUI for app structure and layout
 - `DocumentGroup` for document window management
 - One AppKit `WKWebView` for whole-document Markdown rendering
-- A data-based Quick Look extension returning self-contained HTML for Finder previews
+- A view-based Quick Look extension presenting self-contained, script-disabled HTML in one `WKWebView`
 - `cmark-gfm` for safe GitHub-flavored HTML and a bundled Highlight.js build for code syntax
 - Asset catalog present, but no meaningful custom visual tokens are currently defined
 
@@ -40,6 +40,7 @@ Observed:
 - No custom colors are defined in the accent color asset.
 - The HTML renderer defines a compact CSS token layer for canvas, text, muted text, borders, code surfaces, selection, and syntax colors in light and dark appearances.
 - The document uses a GitHub-inspired hierarchy: system body text, bordered H1/H2 headings, padded grid tables, border-accented blockquotes, rounded code surfaces, and restrained link color.
+- Leading YAML frontmatter uses an always-visible, compact bordered code panel with YAML syntax coloring in the app. It has no disclosure row, language label, or copy button, keeping metadata visually subordinate to the document title.
 - Font size, line height, reading width, System/Light/Dark appearance, and syntax highlighting are user-adjustable and persisted.
 
 Current visible spacing:
@@ -54,7 +55,7 @@ Current visible spacing:
 - The HTML canvas owns the fixed horizontal gutter; the centered body owns the percentage width and vertical padding. The body's line box and the Markdown root share the same horizontal edges so browser selection remains within the reading column.
 - The sidebar shows a heading-based table of contents derived from the cmark document tree and scrolls the web document to stable generated anchors.
 - Image previews remain a native full-window overlay.
-- Finder Quick Look uses a separate system-owned preview window with no app sidebar or reader toolbar; macOS supplies its own title bar, sharing controls, and Open With action.
+- Finder Quick Look uses a separate system-owned preview window with no app sidebar, reader settings, or custom control bar. macOS supplies its own title bar, sharing controls, and Open With action; the extension fills the remaining surface with the WebKit document.
 
 ## Component Conventions
 
@@ -69,7 +70,7 @@ Observed:
 - The current app interaction model is passive reading only.
 - A gear-shaped Reader Settings toolbar button presents a transient native `NSPopover` containing SwiftUI controls for font size, line spacing, reading width, theme, syntax highlighting, and reset. The broader settings identity leaves room for future reader integrations without changing the control again. The popover remains open while settings update the document live and dismisses when the reader is clicked.
 - The Reader Settings popover includes a Quick Look Preview section explaining the Space-bar workflow and a Manage action that opens macOS extension settings. Activation remains system-controlled; the app does not present a duplicate enable toggle.
-- The Quick Look document surface follows the current system appearance and uses the same GitHub-inspired hierarchy, but intentionally omits the sidebar, reader controls, JavaScript syntax highlighting, and app-specific copy/image interactions.
+- The Quick Look document surface follows the current system appearance and uses WebKit with the app's default `75%` reading measure, `17px` typography, GitHub-inspired hierarchy, and unified rounded code/frontmatter panels. It intentionally omits custom controls, the sidebar, reader settings, JavaScript syntax highlighting, and image loading. Browser-native selection handles ⌘A/⌘C.
 - Font-size and line-spacing controls use one visible header/value row and a separate full-width slider row; slider accessibility labels must not appear as duplicate visible labels.
 - Theme uses a compact segmented control aligned to the trailing edge of its row. Reading width changes the centered column as a percentage of the available reader area; every step remains distinct in maximized and full-screen windows, while narrow windows use the full available width.
 - Theme applies to the complete document window. System explicitly clears the window's appearance override so it immediately follows the current macOS appearance after Light or Dark was selected.

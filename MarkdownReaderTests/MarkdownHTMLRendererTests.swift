@@ -104,6 +104,41 @@ struct MarkdownHTMLRendererTests {
         #expect(!result.bodyHTML.contains("alert('unsafe')"))
     }
 
+    @Test func rendersLeadingYAMLFrontMatterAsACompactCodePanel() {
+        let result = MarkdownHTMLRenderer.render(
+            """
+            ---
+            name: make-gpt-image
+            description: Generate <safe> images.
+            ---
+
+            # Make GPT Image
+            """
+        )
+
+        #expect(result.bodyHTML.hasPrefix("<pre class=\"frontmatter\">"))
+        #expect(result.bodyHTML.contains("<code class=\"language-yaml\">"))
+        #expect(result.bodyHTML.contains("name: make-gpt-image"))
+        #expect(result.bodyHTML.contains("description: Generate &lt;safe&gt; images."))
+        #expect(!result.bodyHTML.contains("<h2>name:"))
+        #expect(result.toc.map(\.title) == ["Make GPT Image"])
+    }
+
+    @Test func doesNotTreatAnOrdinaryOpeningRuleAsFrontMatter() {
+        let result = MarkdownHTMLRenderer.render(
+            """
+            ---
+
+            A normal paragraph.
+
+            ---
+            """
+        )
+
+        #expect(!result.bodyHTML.contains("class=\"frontmatter\""))
+        #expect(result.bodyHTML.components(separatedBy: "<hr />").count == 3)
+    }
+
     @Test func emptyDocumentProducesEmptyBodyAndOutline() {
         let result = MarkdownHTMLRenderer.render("")
 
@@ -162,6 +197,11 @@ struct MarkdownHTMLDocumentTests {
     @Test func quickLookPageIsSelfContainedScriptFreeAndSystemThemed() {
         let rendered = MarkdownHTMLRenderer.render(
             """
+            ---
+            name: preview-style
+            description: Compact metadata panel.
+            ---
+
             # Preview
 
             | A | B |
@@ -171,15 +211,25 @@ struct MarkdownHTMLDocumentTests {
             ```swift
             let preview = true
             ```
+
+            ![remote diagram](https://example.com/tracker.png)
             """
         )
         let page = MarkdownQuickLookHTMLDocument.make(bodyHTML: rendered.bodyHTML)
 
+        #expect(page.contains("<html data-theme=\"system\">"))
+        #expect(page.contains("<pre class=\"frontmatter\"><code class=\"language-yaml\">"))
         #expect(page.contains("<h1>Preview</h1>"))
         #expect(page.contains("<table>"))
         #expect(page.contains("<pre><code class=\"language-swift\">"))
         #expect(page.contains("prefers-color-scheme: dark"))
         #expect(page.contains("default-src 'none'"))
+        #expect(page.contains("img-src 'none'"))
+        #expect(page.contains("font-size: 17px"))
+        #expect(page.contains("width: 75%"))
+        #expect(page.contains("pre.frontmatter"))
+        #expect(page.contains("🖼 remote diagram") || page.contains("&#x1F5BC; remote diagram"))
+        #expect(!page.contains("<img"))
         #expect(!page.contains("<script"))
         #expect(!page.contains("markdown-reader-resource:"))
     }

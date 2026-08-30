@@ -37,6 +37,8 @@ enum MarkdownHTMLRenderer {
     static func render(_ markdown: String) -> RenderedMarkdown {
         cmark_gfm_core_extensions_ensure_registered()
 
+        let source = MarkdownFrontMatter.extract(from: markdown)
+
         let options = CMARK_OPT_VALIDATE_UTF8
             | CMARK_OPT_FOOTNOTES
             | CMARK_OPT_STRIKETHROUGH_DOUBLE_TILDE
@@ -51,8 +53,8 @@ enum MarkdownHTMLRenderer {
             cmark_parser_attach_syntax_extension(parser, syntaxExtension)
         }
 
-        markdown.withCString { source in
-            cmark_parser_feed(parser, source, markdown.utf8.count)
+        source.markdown.withCString { markdownSource in
+            cmark_parser_feed(parser, markdownSource, source.markdown.utf8.count)
         }
 
         guard let document = cmark_parser_finish(parser) else {
@@ -70,7 +72,10 @@ enum MarkdownHTMLRenderer {
         }
         defer { free(rendered) }
 
-        return RenderedMarkdown(bodyHTML: String(cString: rendered), toc: toc)
+        return RenderedMarkdown(
+            bodyHTML: frontMatterHTML(source.yaml) + String(cString: rendered),
+            toc: toc
+        )
     }
 
     private static func tableOfContents(in document: Node) -> [TOCItem] {
@@ -122,10 +127,19 @@ enum MarkdownHTMLRenderer {
     }
 
     private static func fallback(for markdown: String) -> RenderedMarkdown {
-        RenderedMarkdown(
-            bodyHTML: "<pre><code>\(escapeHTML(markdown))</code></pre>",
+        let source = MarkdownFrontMatter.extract(from: markdown)
+        return RenderedMarkdown(
+            bodyHTML: frontMatterHTML(source.yaml)
+                + "<pre><code>\(escapeHTML(source.markdown))</code></pre>",
             toc: []
         )
+    }
+
+    private static func frontMatterHTML(_ yaml: String?) -> String {
+        guard let yaml else { return "" }
+        return "<pre class=\"frontmatter\"><code class=\"language-yaml\">"
+            + escapeHTML(yaml)
+            + "</code></pre>\n"
     }
 
     private static func escapeHTML(_ value: String) -> String {

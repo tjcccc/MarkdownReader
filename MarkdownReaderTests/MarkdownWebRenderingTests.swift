@@ -32,6 +32,8 @@ struct MarkdownWebRenderingTests {
     private struct Diagnostics: Decodable {
         let tableCount: Int
         let codeBlockCount: Int
+        let frontMatterCount: Int
+        let frontMatterToolbarCount: Int
         let highlightedTokenCount: Int
         let fontSize: String
         let contentWidth: String
@@ -42,6 +44,17 @@ struct MarkdownWebRenderingTests {
         let markdownRight: Double
         let theme: String
         let imageLoaded: Bool
+    }
+
+    private struct QuickLookDiagnostics: Decodable {
+        let frontMatterCount: Int
+        let frontMatterText: String
+        let frontMatterWidth: Double
+        let markdownWidth: Double
+        let bodyFontSize: String
+        let headingFontSize: String
+        let scriptCount: Int
+        let imageCount: Int
     }
 
     @Test @MainActor
@@ -61,6 +74,11 @@ struct MarkdownWebRenderingTests {
         try Data(image.utf8).write(to: documentRoot.appendingPathComponent("sample.svg"))
 
         let markdown = """
+        ---
+        name: web-renderer
+        description: Compact metadata panel.
+        ---
+
         # Web renderer
 
         > A padded blockquote.
@@ -128,6 +146,8 @@ struct MarkdownWebRenderingTests {
                   return JSON.stringify({
                     tableCount: document.querySelectorAll('table').length,
                     codeBlockCount: document.querySelectorAll('.code-block').length,
+                    frontMatterCount: document.querySelectorAll('pre.frontmatter').length,
+                    frontMatterToolbarCount: document.querySelectorAll('pre.frontmatter .code-toolbar').length,
                     highlightedTokenCount: document.querySelectorAll('[class^="hljs-"]').length,
                     fontSize: bodyStyle.fontSize,
                     contentWidth: markdownRect.width + 'px',
@@ -151,6 +171,8 @@ struct MarkdownWebRenderingTests {
 
         #expect(diagnostics.tableCount == 1)
         #expect(diagnostics.codeBlockCount == 2)
+        #expect(diagnostics.frontMatterCount == 1)
+        #expect(diagnostics.frontMatterToolbarCount == 0)
         #expect(diagnostics.highlightedTokenCount > 0)
         #expect(diagnostics.fontSize == "18px")
         #expect(diagnostics.contentWidth == "1428px")
@@ -197,6 +219,78 @@ struct MarkdownWebRenderingTests {
         )
         #expect(abs(narrowContentWidth - 552) < 0.5)
 
+    }
+
+    @Test @MainActor
+    func quickLookUsesWebKitLayoutAndKeepsFrontMatterInOnePanel() async throws {
+        let rendered = MarkdownHTMLRenderer.render(
+            """
+            ---
+            name: make-gpt-image
+            description: Generate one or more raster images from a natural-language prompt.
+            ---
+
+            # Make GPT Image
+
+            A readable paragraph with `inline code`.
+
+            ```text
+            $make-gpt-image {prompt} [--output PATH]
+            ```
+
+            ![remote](https://example.com/image.png)
+            """
+        )
+        let page = MarkdownQuickLookHTMLDocument.make(bodyHTML: rendered.bodyHTML)
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = false
+        let webView = WKWebView(
+            frame: NSRect(x: 0, y: 0, width: 1_200, height: 900),
+            configuration: configuration
+        )
+        let waiter = NavigationWaiter()
+        webView.navigationDelegate = waiter
+
+        try await withCheckedThrowingContinuation { continuation in
+            waiter.continuation = continuation
+            webView.loadHTMLString(page, baseURL: nil)
+        }
+
+        let diagnosticsJSON = try #require(
+            try await webView.evaluateJavaScript(
+                """
+                (() => {
+                  const markdown = document.querySelector('.markdown-body');
+                  const frontMatter = document.querySelector('pre.frontmatter');
+                  return JSON.stringify({
+                    frontMatterCount: document.querySelectorAll('pre.frontmatter').length,
+                    frontMatterText: frontMatter?.textContent || '',
+                    frontMatterWidth: frontMatter?.getBoundingClientRect().width || 0,
+                    markdownWidth: markdown?.getBoundingClientRect().width || 0,
+                    bodyFontSize: getComputedStyle(document.body).fontSize,
+                    headingFontSize: getComputedStyle(document.querySelector('h1')).fontSize,
+                    scriptCount: document.querySelectorAll('script').length,
+                    imageCount: document.querySelectorAll('img').length
+                  });
+                })()
+                """
+            ) as? String
+        )
+        let diagnostics = try JSONDecoder().decode(
+            QuickLookDiagnostics.self,
+            from: Data(diagnosticsJSON.utf8)
+        )
+
+        #expect(!configuration.defaultWebpagePreferences.allowsContentJavaScript)
+        #expect(diagnostics.frontMatterCount == 1)
+        #expect(diagnostics.frontMatterText.contains("name: make-gpt-image"))
+        #expect(diagnostics.frontMatterText.contains("description: Generate one or more"))
+        #expect(abs(diagnostics.frontMatterWidth - diagnostics.markdownWidth) < 0.5)
+        #expect(diagnostics.bodyFontSize == "17px")
+        #expect(diagnostics.headingFontSize == "34px")
+        #expect(diagnostics.scriptCount == 0)
+        #expect(diagnostics.imageCount == 0)
     }
 
 }

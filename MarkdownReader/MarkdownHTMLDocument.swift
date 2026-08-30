@@ -313,6 +313,27 @@ enum MarkdownHTMLDocument {
               white-space: pre;
             }
 
+            pre.frontmatter {
+              margin: 0 0 1.4em;
+              padding: 14px 16px;
+              overflow: auto;
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              background: var(--code-bg);
+              font-size: 0.82em;
+              line-height: 1.5;
+              tab-size: 2;
+            }
+
+            pre.frontmatter code {
+              display: block;
+              min-width: max-content;
+              padding: 0;
+              color: inherit;
+              background: transparent;
+              white-space: pre;
+            }
+
             .code-toolbar {
               position: absolute;
               z-index: 1;
@@ -459,6 +480,7 @@ enum MarkdownHTMLDocument {
                   if (!pre || pre.parentElement?.classList.contains('code-block')) return;
 
                   code.dataset.rawCode = code.textContent || '';
+                  if (pre.classList.contains('frontmatter')) return;
 
                   const wrapper = document.createElement('div');
                   wrapper.className = 'code-block';

@@ -90,6 +90,35 @@ if [ ! -d "$QUICK_LOOK_PATH" ]; then
   exit 1
 fi
 
+QUICK_LOOK_INFO_PLIST="$QUICK_LOOK_PATH/Contents/Info.plist"
+QUICK_LOOK_UTI="$(/usr/libexec/PlistBuddy \
+  -c 'Print :NSExtension:NSExtensionAttributes:QLSupportedContentTypes:0' \
+  "$QUICK_LOOK_INFO_PLIST")"
+QUICK_LOOK_PRINCIPAL_CLASS="$(/usr/libexec/PlistBuddy \
+  -c 'Print :NSExtension:NSExtensionPrincipalClass' \
+  "$QUICK_LOOK_INFO_PLIST")"
+
+if [ "$QUICK_LOOK_UTI" != "net.daringfireball.markdown" ] \
+  || [ "$QUICK_LOOK_PRINCIPAL_CLASS" != "MarkdownReaderQuickLook.PreviewViewController" ] \
+  || /usr/libexec/PlistBuddy \
+    -c 'Print :NSExtension:NSExtensionAttributes:QLIsDataBasedPreview' \
+    "$QUICK_LOOK_INFO_PLIST" >/dev/null 2>&1; then
+  echo "The Quick Look extension is not configured as the expected view-based preview." >&2
+  exit 1
+fi
+
+QUICK_LOOK_ENTITLEMENTS="$(codesign -d --entitlements :- "$QUICK_LOOK_PATH" 2>/dev/null \
+  | plutil -p -)"
+if ! grep -Fq '"com.apple.security.app-sandbox" => true' \
+    <<< "$QUICK_LOOK_ENTITLEMENTS" \
+  || ! grep -Fq '"com.apple.security.files.user-selected.read-only" => true' \
+    <<< "$QUICK_LOOK_ENTITLEMENTS" \
+  || ! grep -Fq '"com.apple.security.network.client" => true' \
+    <<< "$QUICK_LOOK_ENTITLEMENTS"; then
+  echo "The Quick Look extension is missing its sandbox, read-only file, or WebKit process entitlement." >&2
+  exit 1
+fi
+
 APP_INFO_PLIST="$APP_PATH/Contents/Info.plist"
 DOCUMENT_UTI="$(/usr/libexec/PlistBuddy \
   -c 'Print :CFBundleDocumentTypes:0:LSItemContentTypes:0' \
