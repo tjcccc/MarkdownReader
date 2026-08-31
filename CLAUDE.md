@@ -11,7 +11,7 @@ A SwiftUI document-based **reader** (viewer, not editor) for Markdown files, mac
 - Swift 6 language mode (`SWIFT_VERSION = 6.0`), SwiftUI, `FileDocument` + `DocumentGroup`.
 - Deployment target: macOS 15.1 (`SDKROOT = auto`; project also lists iOS/visionOS as supported platforms, but the app is built and exercised on macOS).
 - Dependency: [`swift-cmark`](https://github.com/swiftlang/swift-cmark) 0.5.0 (`cmark-gfm` + extensions). Highlight.js 11.11.1 is bundled as an offline app resource.
-- Xcode project workflow (no SwiftPM manifest, no Makefile). Bundle id `com.taojiachun.MarkdownReader`, version in `MARKETING_VERSION` (currently 0.6.1).
+- Xcode project workflow (no SwiftPM manifest, no Makefile). Bundle id `com.taojiachun.MarkdownReader`, version in `MARKETING_VERSION` (currently 0.6.2).
 
 ## Layout
 

@@ -4,6 +4,16 @@ Notable user-facing and release changes are recorded here. Dates use `YYYY-MM-DD
 
 ## Unreleased
 
+## 0.6.2 - 2026-08-31
+
+### Added
+
+- Added a dry-run-first developer script for removing duplicate MarkdownReader Launch Services and Quick Look registrations without deleting app bundles.
+
+### Changed
+
+- Widened Finder Quick Look's reading column and reduced its horizontal gutters so compact previews display more Markdown content.
+
 ## 0.6.1 - 2026-08-30
 
 ### Fixed

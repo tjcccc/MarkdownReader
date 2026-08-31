@@ -56,13 +56,13 @@ enum MarkdownQuickLookHTMLDocument {
 
             html {
               min-height: 100%;
-              padding: 0 48px;
+              padding: 0 24px;
               background: var(--canvas);
             }
 
             body {
               min-height: 100vh;
-              width: 75%;
+              width: 85%;
               margin: 0 auto;
               padding: 36px 0 72px;
               color: var(--foreground);
@@ -287,7 +287,7 @@ enum MarkdownQuickLookHTMLDocument {
 
             @media (max-width: 700px) {
               html {
-                padding: 0 24px;
+                padding: 0 16px;
               }
 
               body {

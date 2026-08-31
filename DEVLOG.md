@@ -1,5 +1,12 @@
 # DEVLOG
 
+## 2026-08-31
+
+- Release: cut `0.6.2` as a compatible Quick Look layout refinement with a developer cleanup utility for duplicate local registrations.
+- Reduced Quick Look preview side spacing so compact Finder previews show more document content: the reading column now uses `85%` of the available width with `24px` horizontal gutters, contracting to `16px` in narrow previews while preserving the existing full-width fallback.
+- Updated the Quick Look HTML regression and UI spec to lock in the preview-specific layout without changing the main app's adjustable reading width.
+- Added a developer cleanup script for duplicate MarkdownReader Launch Services and Quick Look registrations. It preserves a validated app path, performs a dry run unless `--apply` is explicit, refreshes the retained registration, and never deletes build products or app bundles.
+
 ## 2026-08-30
 
 - Release: cut `0.6.1` as a compatible Quick Look fix for selectable WebKit previews, app-consistent Markdown/frontmatter styling, and the document-only preview surface.

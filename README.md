@@ -2,7 +2,7 @@
 
 MarkdownReader is a small SwiftUI document app for opening and reading Markdown files on macOS. It is currently closer to a minimal viewer than a polished product.
 
-Current release snapshot: `0.6.1`
+Current release snapshot: `0.6.2`
 
 ## Current Status
 
@@ -91,6 +91,7 @@ Because images live beside the document and the App Sandbox only grants access t
 - The app is a reader-only document viewer. The App Sandbox is disabled (see above) so images stored next to a Markdown file can be loaded.
 - `scripts/run-debug.sh` builds Debug and runs the app from the terminal (`scripts/run-debug.sh file.md` to open a document).
 - `scripts/build-production.sh` tests, clean-builds, verifies, and packages a Release app (`--skip-tests` is available for an already-tested revision).
+- `scripts/cleanup-markdownreader-registrations.sh` reports duplicate Launch Services and Quick Look registrations created by local build products. It is a read-only dry run by default; pass `--apply` to unregister duplicates while preserving `/Applications/MarkdownReader.app`. The script does not delete app bundles.
 
 ## Runtime Noise Checklist
 
