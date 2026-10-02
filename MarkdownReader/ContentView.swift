@@ -75,6 +75,7 @@ struct ContentView: View {
                     }
                     .listStyle(.sidebar)
                     .navigationTitle("Contents")
+                    .background(TableOfContentsScrollBridge(selectedRow: selectedTOCID))
                 }
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 240, max: 420)

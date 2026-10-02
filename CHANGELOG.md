@@ -4,6 +4,12 @@ Notable user-facing and release changes are recorded here. Dates use `YYYY-MM-DD
 
 ## Unreleased
 
+## 0.7.1 - 2026-10-02
+
+### Fixed
+
+- Keep the complete highlighted table-of-contents row visible, including its rounded padding, when document scrolling moves to a section outside the sidebar viewport.
+
 ## 0.7.0 - 2026-10-02
 
 ### Changed

@@ -5,6 +5,7 @@
 
 import AppKit
 import Foundation
+import SwiftUI
 import Testing
 import WebKit
 @testable import MarkdownReader
@@ -38,7 +39,79 @@ private final class NavigationWaiter: NSObject, WKNavigationDelegate, WKScriptMe
     }
 }
 
+@Suite(.serialized)
 struct MarkdownWebRenderingTests {
+    @Test @MainActor
+    func sidebarRevealsActiveHeadingWithoutMovingDocument() async throws {
+        let markdown = (0..<80).map { index in
+            "## Section \(index) with a long title that wraps onto two lines in the sidebar\n\n"
+                + Array(repeating: "Paragraph of reading content.\n\n", count: 8).joined()
+        }.joined()
+        let hostingView = NSHostingView(rootView: ContentView(
+            document: MarkdownReaderDocument(text: markdown)
+        ))
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1200, height: 820),
+            styleMask: [.titled, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.contentView = hostingView
+        window.orderFront(nil)
+        defer { window.close() }
+
+        func descendant<ViewType: NSView>(of view: NSView, matching type: ViewType.Type) -> ViewType? {
+            if let match = view as? ViewType { return match }
+            for subview in view.subviews {
+                if let match = descendant(of: subview, matching: type) { return match }
+            }
+            return nil
+        }
+
+        var loadedWebView: WKWebView?
+        for _ in 0..<100 {
+            if let webView = descendant(of: hostingView, matching: WKWebView.self),
+               (try? await webView.evaluateJavaScript("Boolean(window.reader)")) as? Bool == true {
+                loadedWebView = webView
+                break
+            }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let webView = try #require(loadedWebView)
+        let tableView = try #require(descendant(of: hostingView, matching: NSTableView.self))
+        #expect(tableView.numberOfRows == 80)
+
+        func revealRect(for row: Int) -> NSRect {
+            tableView.rect(ofRow: row).insetBy(dx: 0, dy: -8).intersection(tableView.bounds)
+        }
+
+        for headingID in [70, 71, 20, 19, 79, 0] {
+            let targetScrollY = try #require(try await webView.evaluateJavaScript(
+                """
+                (() => {
+                  const target = document.getElementById('heading-\(headingID)');
+                  window.scrollTo(0, window.scrollY + target.getBoundingClientRect().top - 24);
+                  return window.scrollY;
+                })()
+                """
+            ) as? Double)
+            for _ in 0..<100 {
+                if tableView.selectedRow == headingID,
+                   tableView.visibleRect.contains(revealRect(for: headingID)) {
+                    break
+                }
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            #expect(tableView.selectedRow == headingID)
+            #expect(tableView.visibleRect.contains(revealRect(for: headingID)))
+            let actualScrollY = try #require(
+                try await webView.evaluateJavaScript("window.scrollY") as? Double
+            )
+            #expect(abs(actualScrollY - targetScrollY) < 1)
+        }
+    }
+
     @Test @MainActor
     func activeHeadingTracksScrollingNavigationAndLayoutChanges() async throws {
         let paragraphs = Array(repeating: "A paragraph with enough content to scroll.\n\n", count: 20)

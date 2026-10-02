@@ -2,14 +2,14 @@
 
 MarkdownReader is a small SwiftUI document app for opening and reading Markdown files on macOS. It is currently closer to a minimal viewer than a polished product.
 
-Current release snapshot: `0.7.0`
+Current release snapshot: `0.7.1`
 
 ## Current Status
 
 - Opens `.md` and `.markdown` files through a document-based app flow.
 - Renders the complete document in one `WKWebView`, so prose, tables, code blocks, and selection share one continuous layout surface.
 - Opens files in viewer mode rather than editor mode.
-- Uses a split-view reader with a toggleable table-of-contents sidebar for Markdown headings; H1/H2 entries are bold, selecting a heading scrolls to it, and the highlight follows the current section while reading.
+- Uses a split-view reader with a toggleable table-of-contents sidebar for Markdown headings; H1/H2 entries are bold, selecting a heading scrolls to it, and the sidebar keeps the current section's complete highlight visible with a small safety margin while reading.
 - Applies a GitHub-inspired reading style tuned for macOS, including properly padded tables, blockquotes, inline code, and fenced code blocks.
 - Presents leading YAML frontmatter as a compact syntax-highlighted metadata panel instead of misreading it as a heading.
 - Provides persistent reader settings for font size, line spacing, reading width, System/Light/Dark theme, and syntax highlighting.
