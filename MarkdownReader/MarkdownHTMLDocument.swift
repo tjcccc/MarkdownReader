@@ -460,6 +460,38 @@ enum MarkdownHTMLDocument {
           <script>
             (() => {
               let highlightingEnabled = null;
+              let headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+              let headingActivationOffset = 24;
+              let scrollingElement = document.scrollingElement;
+              let viewport = document.documentElement;
+              let activeHeadingObserver = new ResizeObserver(scheduleActiveHeadingUpdate);
+              let activeHeadingAnchor = null;
+              let headingUpdatePending = false;
+
+              function updateActiveHeading() {
+                if (!headings.length) return;
+                let activeHeading = headings[0];
+                for (const heading of headings) {
+                  if (heading.getBoundingClientRect().top > headingActivationOffset + 1) break;
+                  activeHeading = heading;
+                }
+                if (scrollingElement.scrollHeight > viewport.clientHeight &&
+                    window.scrollY + viewport.clientHeight >= scrollingElement.scrollHeight - 1) {
+                  activeHeading = headings[headings.length - 1];
+                }
+                if (activeHeadingAnchor === activeHeading.id) return;
+                activeHeadingAnchor = activeHeading.id;
+                window.webkit?.messageHandlers?.activeHeadingChanged?.postMessage(activeHeading.id);
+              }
+
+              function scheduleActiveHeadingUpdate() {
+                if (headingUpdatePending) return;
+                headingUpdatePending = true;
+                window.requestAnimationFrame(() => {
+                  headingUpdatePending = false;
+                  updateActiveHeading();
+                });
+              }
 
               function languageFor(code) {
                 const languageClass = Array.from(code.classList)
@@ -468,10 +500,9 @@ enum MarkdownHTMLDocument {
               }
 
               function decorateHeadings() {
-                document.querySelectorAll('h1, h2, h3, h4, h5, h6')
-                  .forEach((heading, index) => {
-                    heading.id = `heading-${index}`;
-                  });
+                headings.forEach((heading, index) => {
+                  heading.id = `heading-${index}`;
+                });
               }
 
               function decorateCodeBlocks() {
@@ -573,6 +604,7 @@ enum MarkdownHTMLDocument {
                   );
                 }
                 applyHighlighting(Boolean(settings.syntaxHighlighting));
+                scheduleActiveHeadingUpdate();
               }
 
               function scrollToHeading(anchor) {
@@ -586,6 +618,9 @@ enum MarkdownHTMLDocument {
               decorateCodeBlocks();
               decorateImages();
               decorateInternalLinks();
+              window.addEventListener('scroll', scheduleActiveHeadingUpdate, { passive: true });
+              window.addEventListener('resize', scheduleActiveHeadingUpdate);
+              activeHeadingObserver.observe(document.querySelector('.markdown-body'));
               window.reader = { applySettings, scrollToHeading };
               applySettings(\#(settings));
             })();

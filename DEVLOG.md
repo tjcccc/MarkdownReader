@@ -1,5 +1,13 @@
 # DEVLOG
 
+## 2026-10-02
+
+- Release: prepared `0.7.0` for scroll-following table-of-contents navigation and bold top-level outline entries; app and Quick Look marketing versions remain aligned.
+- Bold H1/H2 sidebar entries while retaining regular text and indentation for deeper headings. Kept the native selection appearance, but made it track the section currently being read instead of remaining on the last clicked heading.
+- Added a frame-coalesced page scroll observer and a main-frame, known-anchor-validated WebKit message bridge. Heading tracking also responds to resizing and layout changes, including reader preferences and image loading. Sidebar navigation and passive scroll updates use separate state paths to avoid feedback-loop scrolling; short final sections become active at the document bottom.
+- Added WebKit integration coverage for initial selection, manual scrolling, document-bottom handling, smooth heading navigation, and preference-driven layout changes.
+- Validation: all 21 unit tests pass, including the scroll-tracking regression in a window-backed WebKit surface (offscreen web views do not deliver animation frames). `scripts/build-production.sh` passes the clean Release build, signature checks, and package validation; the ad-hoc-signed build remains local-only.
+
 ## 2026-08-31
 
 - Release: cut `0.6.2` as a compatible Quick Look layout refinement with a developer cleanup utility for duplicate local registrations.

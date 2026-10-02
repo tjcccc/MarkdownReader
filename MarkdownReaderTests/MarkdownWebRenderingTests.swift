@@ -10,8 +10,18 @@ import WebKit
 @testable import MarkdownReader
 
 @MainActor
-private final class NavigationWaiter: NSObject, WKNavigationDelegate {
+private final class NavigationWaiter: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
     var continuation: CheckedContinuation<Void, Error>?
+    var activeHeadingAnchors: [String] = []
+
+    func userContentController(
+        _ userContentController: WKUserContentController,
+        didReceive message: WKScriptMessage
+    ) {
+        if message.name == "activeHeadingChanged", let anchor = message.body as? String {
+            activeHeadingAnchors.append(anchor)
+        }
+    }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         continuation?.resume()
@@ -29,6 +39,83 @@ private final class NavigationWaiter: NSObject, WKNavigationDelegate {
 }
 
 struct MarkdownWebRenderingTests {
+    @Test @MainActor
+    func activeHeadingTracksScrollingNavigationAndLayoutChanges() async throws {
+        let paragraphs = Array(repeating: "A paragraph with enough content to scroll.\n\n", count: 20)
+            .joined()
+        let rendered = MarkdownHTMLRenderer.render(
+            "# Title\n\n\(paragraphs)## Section\n\n\(paragraphs)### Last heading\n\nShort ending."
+        )
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+        let waiter = NavigationWaiter()
+        configuration.userContentController.add(waiter, name: "activeHeadingChanged")
+        let webView = WKWebView(
+            frame: NSRect(x: 0, y: 0, width: 900, height: 500),
+            configuration: configuration
+        )
+        webView.navigationDelegate = waiter
+        let window = NSWindow(
+            contentRect: webView.frame,
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.contentView = webView
+        window.orderFront(nil)
+        defer {
+            window.close()
+            configuration.userContentController.removeScriptMessageHandler(forName: "activeHeadingChanged")
+            webView.stopLoading()
+        }
+
+        try await withCheckedThrowingContinuation { continuation in
+            waiter.continuation = continuation
+            webView.loadHTMLString(
+                MarkdownHTMLDocument.make(
+                    bodyHTML: rendered.bodyHTML,
+                    options: ReaderDisplayOptions(
+                        fontSize: 17,
+                        lineHeight: 1.6,
+                        contentWidthPercentage: 75,
+                        theme: .system,
+                        syntaxHighlighting: false
+                    )
+                ),
+                baseURL: nil
+            )
+        }
+
+        func expectActiveHeading(_ anchor: String) async throws {
+            for _ in 0..<100 {
+                if waiter.activeHeadingAnchors.last == anchor { return }
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            #expect(waiter.activeHeadingAnchors.last == anchor)
+        }
+
+        try await expectActiveHeading("heading-0")
+        _ = try await webView.evaluateJavaScript(
+            "window.scrollTo(0, document.getElementById('heading-1').offsetTop - 24);"
+        )
+        try await expectActiveHeading("heading-1")
+        _ = try await webView.evaluateJavaScript("window.scrollTo(0, document.body.scrollHeight);")
+        try await expectActiveHeading("heading-2")
+        _ = try await webView.evaluateJavaScript("window.reader.scrollToHeading('heading-0');")
+        try await expectActiveHeading("heading-0")
+        _ = try await webView.evaluateJavaScript("window.reader.scrollToHeading('heading-1');")
+        try await expectActiveHeading("heading-1")
+        try await Task.sleep(for: .milliseconds(500))
+        _ = try await webView.evaluateJavaScript(
+            "window.reader.applySettings({fontSize: 32, lineHeight: 2, contentWidthPercentage: 75, theme: 'dark', syntaxHighlighting: false});"
+        )
+        try await expectActiveHeading("heading-0")
+        #expect(waiter.activeHeadingAnchors.allSatisfy { anchor in
+            rendered.toc.contains { $0.anchor == anchor }
+        })
+    }
+
     private struct Diagnostics: Decodable {
         let tableCount: Int
         let codeBlockCount: Int

@@ -116,10 +116,15 @@ struct MarkdownWebView: NSViewRepresentable {
     let documentRootURL: URL?
     let displayOptions: ReaderDisplayOptions
     var scrollAnchor: String?
+    var onActiveHeadingChange: ((String) -> Void)?
     var onImageTap: ((NSImage) -> Void)?
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(documentRootURL: documentRootURL, onImageTap: onImageTap)
+        Coordinator(
+            documentRootURL: documentRootURL,
+            onImageTap: onImageTap,
+            onActiveHeadingChange: onActiveHeadingChange
+        )
     }
 
     func makeNSView(context: Context) -> WKWebView {
@@ -128,6 +133,7 @@ struct MarkdownWebView: NSViewRepresentable {
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.userContentController.add(context.coordinator, name: "copyCode")
         configuration.userContentController.add(context.coordinator, name: "imageClicked")
+        configuration.userContentController.add(context.coordinator, name: "activeHeadingChanged")
         configuration.setURLSchemeHandler(
             context.coordinator.resourceHandler,
             forURLScheme: MarkdownResourceResolver.scheme
@@ -146,6 +152,7 @@ struct MarkdownWebView: NSViewRepresentable {
 
     func updateNSView(_ webView: WKWebView, context: Context) {
         context.coordinator.onImageTap = onImageTap
+        context.coordinator.onActiveHeadingChange = onActiveHeadingChange
 
         if context.coordinator.lastBodyHTML != rendered.bodyHTML {
             context.coordinator.load(rendered, options: displayOptions, in: webView)
@@ -159,6 +166,7 @@ struct MarkdownWebView: NSViewRepresentable {
         webView.stopLoading()
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "copyCode")
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "imageClicked")
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: "activeHeadingChanged")
         webView.navigationDelegate = nil
     }
 
@@ -167,15 +175,22 @@ struct MarkdownWebView: NSViewRepresentable {
         fileprivate let resourceHandler: MarkdownResourceSchemeHandler
         fileprivate weak var webView: WKWebView?
         fileprivate var onImageTap: ((NSImage) -> Void)?
+        fileprivate var onActiveHeadingChange: ((String) -> Void)?
         fileprivate var lastBodyHTML: String?
 
         private var latestOptions: ReaderDisplayOptions?
         private var lastScrollAnchor: String?
         private var pageIsReady = false
+        private var headingAnchors: Set<String> = []
 
-        init(documentRootURL: URL?, onImageTap: ((NSImage) -> Void)?) {
+        init(
+            documentRootURL: URL?,
+            onImageTap: ((NSImage) -> Void)?,
+            onActiveHeadingChange: ((String) -> Void)? = nil
+        ) {
             resourceHandler = MarkdownResourceSchemeHandler(documentRootURL: documentRootURL)
             self.onImageTap = onImageTap
+            self.onActiveHeadingChange = onActiveHeadingChange
         }
 
         fileprivate func load(
@@ -187,6 +202,7 @@ struct MarkdownWebView: NSViewRepresentable {
             latestOptions = options
             lastScrollAnchor = nil
             pageIsReady = false
+            headingAnchors = Set(rendered.toc.map(\.anchor))
 
             let document = MarkdownHTMLDocument.make(
                 bodyHTML: rendered.bodyHTML,
@@ -250,6 +266,11 @@ struct MarkdownWebView: NSViewRepresentable {
             didReceive message: WKScriptMessage
         ) {
             switch message.name {
+            case "activeHeadingChanged":
+                guard message.frameInfo.isMainFrame,
+                      let anchor = message.body as? String,
+                      headingAnchors.contains(anchor) else { return }
+                onActiveHeadingChange?(anchor)
             case "copyCode":
                 guard let code = message.body as? String else { return }
                 let pasteboard = NSPasteboard.general

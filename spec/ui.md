@@ -54,6 +54,7 @@ Current visible spacing:
 - The entire rendered document lives in one persistent `WKWebView`; there are no per-block web views or parallel native text layout.
 - The HTML canvas owns the fixed horizontal gutter; the centered body owns the percentage width and vertical padding. The body's line box and the Markdown root share the same horizontal edges so browser selection remains within the reading column.
 - The sidebar shows a heading-based table of contents derived from the cmark document tree and scrolls the web document to stable generated anchors.
+- H1/H2 outline entries use bold system text; deeper headings retain regular weight and level-based indentation. The native selection highlight follows the last heading to reach the reader's `24px` top inset, with the first heading active at the start and the last active at the bottom of a scrollable document. Scroll tracking never triggers a new navigation request and updates after layout or reader-setting changes.
 - Image previews remain a native full-window overlay.
 - Finder Quick Look uses a separate system-owned preview window with no app sidebar, reader settings, or custom control bar. macOS supplies its own title bar, sharing controls, and Open With action; the extension fills the remaining surface with the WebKit document. Its reading column uses `85%` of the available width with `24px` horizontal gutters so the compact preview surface shows more content than the main app's default layout; narrow previews reduce those gutters to `16px`.
 

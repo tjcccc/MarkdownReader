@@ -12,6 +12,7 @@ private struct TableOfContentsRow: View {
 
     var body: some View {
         Text(item.title)
+            .fontWeight(item.level <= 2 ? .bold : .regular)
             .lineLimit(2)
             .padding(.leading, CGFloat(max(item.level - 1, 0) * 12))
     }
@@ -62,7 +63,13 @@ struct ContentView: View {
                         description: Text("Add Markdown headings to show an outline here.")
                     )
                 } else {
-                    List(rendered.toc, selection: $selectedTOCID) { item in
+                    List(rendered.toc, selection: Binding(
+                        get: { selectedTOCID },
+                        set: { newValue in
+                            selectedTOCID = newValue
+                            scrollAnchor = rendered.toc.first { $0.id == newValue }?.anchor
+                        }
+                    )) { item in
                         TableOfContentsRow(item: item)
                             .tag(Optional(item.id))
                     }
@@ -77,6 +84,10 @@ struct ContentView: View {
                 documentRootURL: documentRootURL,
                 displayOptions: displayOptions,
                 scrollAnchor: scrollAnchor,
+                onActiveHeadingChange: { anchor in
+                    selectedTOCID = rendered.toc.first { $0.anchor == anchor }?.id
+                    scrollAnchor = nil
+                },
                 onImageTap: { image in
                     withAnimation(.easeInOut(duration: 0.15)) { previewImage = image }
                 }
@@ -84,11 +95,6 @@ struct ContentView: View {
             .background(Color(nsColor: .textBackgroundColor))
         }
         .navigationSplitViewStyle(.balanced)
-        .onChange(of: selectedTOCID) { _, newValue in
-            guard let id = newValue,
-                  let item = rendered.toc.first(where: { $0.id == id }) else { return }
-            scrollAnchor = item.anchor
-        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 ReaderSettingsToolbarButton(

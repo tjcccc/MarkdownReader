@@ -4,6 +4,12 @@ Notable user-facing and release changes are recorded here. Dates use `YYYY-MM-DD
 
 ## Unreleased
 
+## 0.7.0 - 2026-10-02
+
+### Changed
+
+- Bold H1/H2 table-of-contents entries and keep the sidebar highlight synchronized with the current section while scrolling.
+
 ## 0.6.2 - 2026-08-31
 
 ### Added
