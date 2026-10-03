@@ -4,6 +4,12 @@ Notable user-facing and release changes are recorded here. Dates use `YYYY-MM-DD
 
 ## Unreleased
 
+## 0.7.2 - 2026-10-03
+
+### Fixed
+
+- In-document contents links now jump to title-based heading anchors, with support for repeated titles and percent-encoded fragments.
+
 ## 0.7.1 - 2026-10-02
 
 ### Fixed

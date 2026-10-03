@@ -461,6 +461,7 @@ enum MarkdownHTMLDocument {
             (() => {
               let highlightingEnabled = null;
               let headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+              const headingsByTitleAnchor = new Map();
               let headingActivationOffset = 24;
               let scrollingElement = document.scrollingElement;
               let viewport = document.documentElement;
@@ -502,6 +503,15 @@ enum MarkdownHTMLDocument {
               function decorateHeadings() {
                 headings.forEach((heading, index) => {
                   heading.id = `heading-${index}`;
+                  const base = (heading.textContent || '').trim().toLowerCase()
+                    .replace(/[^\p{L}\p{M}\p{N}_\-\s]/gu, '')
+                    .replace(/\s/g, '-');
+                  let anchor = base;
+                  let suffix = 0;
+                  while (headingsByTitleAnchor.has(anchor)) {
+                    anchor = `${base}-${++suffix}`;
+                  }
+                  headingsByTitleAnchor.set(anchor, heading);
                 });
               }
 
@@ -558,10 +568,15 @@ enum MarkdownHTMLDocument {
               function decorateInternalLinks() {
                 document.querySelectorAll('a[href^="#"]').forEach(link => {
                   link.addEventListener('click', event => {
-                    const anchor = link.getAttribute('href')?.slice(1);
-                    const target = anchor ? document.getElementById(anchor) : null;
-                    if (!target) return;
                     event.preventDefault();
+                    let anchor = link.getAttribute('href')?.slice(1);
+                    try {
+                      anchor = decodeURIComponent(anchor || '');
+                    } catch {
+                      return;
+                    }
+                    const target = headingsByTitleAnchor.get(anchor) || document.getElementById(anchor);
+                    if (!target) return;
                     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   });
                 });

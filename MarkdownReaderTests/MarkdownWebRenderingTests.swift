@@ -42,6 +42,118 @@ private final class NavigationWaiter: NSObject, WKNavigationDelegate, WKScriptMe
 @Suite(.serialized)
 struct MarkdownWebRenderingTests {
     @Test @MainActor
+    func contentsLinksScrollToTitleAnchorsAndPreserveSidebarAnchors() async throws {
+        let paragraphs = Array(repeating: "Reading content.\n\n", count: 30).joined()
+        let rendered = MarkdownHTMLRenderer.render(
+            """
+            # Contents
+
+            [A. Current status and evidence rules](#a-current-status-and-evidence-rules)
+            [Repeated](#repeated-1)
+            [Encoded](#caf%C3%A9-%E4%B8%AD%E6%96%87)
+            [Sidebar anchor](#heading-1)
+            [Malformed](#bad%ZZ)
+            [Missing](#missing)
+
+            \(paragraphs)
+            ## A. Current status and evidence rules
+
+            \(paragraphs)
+            ## Repeated
+
+            \(paragraphs)
+            ## Repeated
+
+            \(paragraphs)
+            ## *Café* `中文`!
+
+            \(paragraphs)
+            """
+        )
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+        configuration.setURLSchemeHandler(
+            MarkdownResourceSchemeHandler(documentRootURL: nil),
+            forURLScheme: MarkdownResourceResolver.scheme
+        )
+        let webView = WKWebView(
+            frame: NSRect(x: 0, y: 0, width: 900, height: 500),
+            configuration: configuration
+        )
+        let waiter = NavigationWaiter()
+        webView.navigationDelegate = waiter
+        let window = NSWindow(
+            contentRect: webView.frame,
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.contentView = webView
+        window.orderFront(nil)
+        defer {
+            window.close()
+            webView.stopLoading()
+        }
+
+        try await withCheckedThrowingContinuation { continuation in
+            waiter.continuation = continuation
+            webView.loadHTMLString(
+                MarkdownHTMLDocument.make(bodyHTML: rendered.bodyHTML, options: ReaderDisplayOptions(
+                    fontSize: 17,
+                    lineHeight: 1.6,
+                    contentWidthPercentage: 75,
+                    theme: .system,
+                    syntaxHighlighting: false
+                )),
+                baseURL: URL(string: "\(MarkdownResourceResolver.scheme)://document/")
+            )
+        }
+
+        for (linkIndex, headingIndex) in [(0, 1), (1, 3), (2, 4), (3, 1)] {
+            // Dispatch a click to verify the handler scrolls to the intended section.
+            _ = try await webView.evaluateJavaScript(
+                """
+                document.querySelectorAll('a')[\(linkIndex)].dispatchEvent(
+                  new MouseEvent('click', {bubbles: true, cancelable: true})
+                );
+                """
+            )
+            var targetTop = Double.infinity
+            for _ in 0..<100 {
+                targetTop = try #require(try await webView.evaluateJavaScript(
+                    "document.getElementById('heading-\(headingIndex)').getBoundingClientRect().top"
+                ) as? Double)
+                if abs(targetTop - 24) < 1 { break }
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            #expect(abs(targetTop - 24) < 1)
+        }
+        let anchors = try #require(try await webView.evaluateJavaScript(
+            "Array.from(document.querySelectorAll('h1, h2')).map(heading => heading.id)"
+        ) as? [String])
+        #expect(anchors == rendered.toc.map(\.anchor))
+        // Missing and malformed fragments must stay in the document.
+        for linkIndex in [4, 5] {
+            let result = try await webView.evaluateJavaScript(
+                """
+                (() => {
+                  let failed = false;
+                  const onError = () => { failed = true; };
+                  window.addEventListener('error', onError);
+                  const event = new MouseEvent('click', {bubbles: true, cancelable: true});
+                  document.querySelectorAll('a')[\(linkIndex)].dispatchEvent(event);
+                  window.removeEventListener('error', onError);
+                  return event.defaultPrevented && !failed;
+                })()
+                """
+            )
+            let handled = try #require(result as? Bool)
+            #expect(handled)
+        }
+    }
+
+    @Test @MainActor
     func sidebarRevealsActiveHeadingWithoutMovingDocument() async throws {
         let markdown = (0..<80).map { index in
             "## Section \(index) with a long title that wraps onto two lines in the sidebar\n\n"

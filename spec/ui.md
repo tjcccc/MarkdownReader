@@ -80,6 +80,7 @@ Observed:
 - The document scene is configured in viewer mode rather than editor mode.
 - The standard macOS sidebar toggle is exposed through the `View` menu via `SidebarCommands`.
 - Scene restoration is disabled so the app does not restore the last document window automatically on launch.
+- In-document fragment links scroll to heading titles converted to lowercase anchors with punctuation removed and spaces replaced by hyphens. Repeated anchors receive `-1`, `-2`, and later suffixes; percent-encoded fragments are decoded. Internal `heading-N` sidebar anchors remain supported.
 - External links open in the default browser; code-copy and image-click actions bridge back to native macOS behavior.
 
 Open questions:

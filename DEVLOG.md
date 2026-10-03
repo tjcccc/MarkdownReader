@@ -176,3 +176,11 @@
 - Release snapshot:
   - Prepared `0.1.0` as the first tagged preview/stable-ish checkpoint for the current macOS reader state.
   - Current known limitations remain: unresolved `Locked` subtitle in the title bar, non-native cross-block text selection with `MarkdownUI`, placeholder tests, and narrow file decoding behavior.
+
+
+## 2026-10-03
+
+- Fixed in-document contents links: the page only assigned `heading-N` IDs, so conventional title fragments such as `#a-current-status-and-evidence-rules` had no target. Added a title-anchor lookup while preserving sidebar IDs, with duplicate suffixes and percent decoding. Fragment clicks always suppress default navigation, including missing or malformed targets.
+- Added a window-backed WebKit regression for title links, repeated headings, formatted Unicode titles, encoded fragments, existing sidebar anchors, and invalid/missing targets. The initial test omitted the private resource-scheme handler and triggered a macOS URL-opening dialog; corrected the test configuration to match the app.
+- Verified all 55 internal links in the reported SAP master-reference document match the generated title-anchor convention. All 23 unit tests pass; `scripts/build-production.sh` passes the clean Release build, signature checks, and ZIP validation. The local build is ad-hoc signed; the installed `/Applications` copy was not replaced.
+- Release checkpoint: user confirmed the link fix; prepared `0.7.2` with aligned app/Quick Look versions and updated release documentation. Reused the 23 passing unit tests; the versioned Release build, signature checks, and ZIP validation pass.
