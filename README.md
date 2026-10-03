@@ -4,16 +4,19 @@ MarkdownReader is a small SwiftUI document app for opening and reading Markdown 
 
 Current release snapshot: `0.7.2`
 
+Development checkpoint (2026-10-03): **unfinished work in progress**. The Back control, document search, and related window refinements are saved for continued review and stabilization; this is not a completed release.
+
 ## Current Status
 
 - Opens `.md` and `.markdown` files through a document-based app flow.
 - Renders the complete document in one `WKWebView`, so prose, tables, code blocks, and selection share one continuous layout surface.
 - Opens files in viewer mode rather than editor mode.
 - Uses a split-view reader with a toggleable table-of-contents sidebar for Markdown headings; H1/H2 entries are bold, selecting a heading scrolls to it, and the sidebar keeps the current section's complete highlight visible with a small safety margin while reading.
-- Follows in-document contents links using title-based heading anchors, including repeated headings and percent-encoded fragments.
+- Follows in-document contents links using title-based heading anchors, including repeated headings and percent-encoded fragments. A floating circular back-arrow button (⌘[) returns to the clicked link after font-size or window-width changes, then disappears.
 - Applies a GitHub-inspired reading style tuned for macOS, including properly padded tables, blockquotes, inline code, and fenced code blocks.
 - Presents leading YAML frontmatter as a compact syntax-highlighted metadata panel instead of misreading it as a heading.
-- Provides persistent reader settings for font size, line spacing, reading width, System/Light/Dark theme, and syntax highlighting.
+- Searches the rendered document with a native macOS find bar whose background matches the title bar: use the Search button beside Settings or ⌘F, see the current/total match count, navigate with ⌘G/⇧⌘G, and close with Done or Escape. Search is read-only.
+- Provides persistent reader settings for font size, line spacing, reading width, System/Light/Dark theme for the complete document window, and syntax highlighting.
 - Includes a macOS Quick Look preview extension for rendering Markdown from Finder with the Space bar and continuous WebKit text selection with ⌘A/⌘C; users enable or disable it in macOS Extensions settings.
 - Highlights common programming languages offline with Highlight.js, using fenced language tags when present and automatic detection otherwise. Each fenced block includes its language and a copy button.
 - Disables document restoration so the app does not automatically reopen the last restored file on launch.

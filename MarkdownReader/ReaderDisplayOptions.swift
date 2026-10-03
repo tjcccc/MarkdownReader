@@ -6,6 +6,16 @@
 import AppKit
 import SwiftUI
 
+@MainActor
+enum ReaderChrome {
+    static let backgroundColor = NSColor(name: nil) { appearance in
+        if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+            return NSColor(white: 40.0 / 255.0, alpha: 1)
+        }
+        return NSColor.windowBackgroundColor
+    }
+}
+
 enum ReaderTheme: String, CaseIterable, Identifiable {
     case system
     case light
@@ -18,6 +28,14 @@ enum ReaderTheme: String, CaseIterable, Identifiable {
         case .system: "System"
         case .light: "Light"
         case .dark: "Dark"
+        }
+    }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
         }
     }
 

@@ -42,6 +42,164 @@ private final class NavigationWaiter: NSObject, WKNavigationDelegate, WKScriptMe
 @Suite(.serialized)
 struct MarkdownWebRenderingTests {
     @Test @MainActor
+    func findBarBackgroundDoesNotPaintOutsideItsBounds() throws {
+        let bitmap = try #require(NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: 100, pixelsHigh: 100,
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+            isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
+        ))
+        let context = try #require(NSGraphicsContext(bitmapImageRep: bitmap))
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        NSGraphicsContext.current = context
+        let dirtyRect = NSRect(x: 0, y: 0, width: 100, height: 100)
+        NSColor.systemPink.setFill()
+        dirtyRect.fill()
+        let originalColor = try #require(bitmap.colorAt(x: 50, y: 50))
+        let bar = ReaderFindBarView(frame: NSRect(x: 0, y: 0, width: 100, height: 36))
+        // AppKit can invalidate beyond a non-clipping view's bounds.
+        bar.draw(dirtyRect)
+        #expect(bitmap.colorAt(x: 50, y: 50) == originalColor)
+    }
+
+    @Test @MainActor
+    func nativeFindBarSearchesRenderedTextWithoutReplaceOrReload() async throws {
+        let paragraphs = Array(repeating: "Ordinary reading\ncontent.\n\n", count: 30).joined()
+        let rendered = MarkdownHTMLRenderer.render(
+            "# Search document\n\nNeedle first.\n\n\(paragraphs)**Nee**dle second.\n\n\(paragraphs)"
+        )
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+        configuration.setURLSchemeHandler(
+            MarkdownResourceSchemeHandler(documentRootURL: nil),
+            forURLScheme: MarkdownResourceResolver.scheme
+        )
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        let container = MarkdownReaderWebContainer(webView: webView)
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 500),
+            styleMask: [.borderless], backing: .buffered, defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.contentView = container
+        window.makeKeyAndOrderFront(nil)
+        defer {
+            webView.stopLoading()
+            window.close()
+        }
+        let waiter = NavigationWaiter()
+        webView.navigationDelegate = waiter
+        try await withCheckedThrowingContinuation { continuation in
+            waiter.continuation = continuation
+            webView.loadHTMLString(
+                MarkdownHTMLDocument.make(bodyHTML: rendered.bodyHTML, options: ReaderDisplayOptions(
+                    fontSize: 17, lineHeight: 1.6, contentWidthPercentage: 75,
+                    theme: .system, syntaxHighlighting: false
+                )),
+                baseURL: URL(string: "\(MarkdownResourceResolver.scheme)://document/")
+            )
+        }
+        _ = try await webView.evaluateJavaScript("window.findTestDocument = document; void 0;")
+        container.performFindAction(.showFindInterface)
+        container.layoutSubtreeIfNeeded()
+        #expect(container.isFindBarVisible)
+        let bar = try #require(container.subviews.compactMap { $0 as? ReaderFindBarView }.first)
+        #expect(bar.clipsToBounds)
+        #expect(bar.frame.height == MarkdownReaderWebContainer.findBarHeight)
+        #expect(webView.frame.minY == bar.frame.height)
+        #expect(webView.frame.maxY == container.bounds.maxY)
+        func descendants(of view: NSView) -> [NSView] {
+            view.subviews.flatMap { [$0] + descendants(of: $0) }
+        }
+        let searchField = try #require(descendants(of: bar).compactMap { $0 as? NSSearchField }.first)
+        #expect(searchField.currentEditor() != nil)
+        #expect(!descendants(of: bar).compactMap { $0 as? NSButton }.contains {
+            $0.title == "Replace" && !$0.isHiddenOrHasHiddenAncestor
+        })
+        let editor = try #require(searchField.currentEditor() as? NSTextView)
+        editor.string = "Needle"
+        editor.didChangeText()
+        searchField.validateEditing()
+        searchField.sendAction(searchField.action, to: searchField.target)
+        container.performFindAction(.nextMatch)
+        var selectedText = ""
+        for _ in 0..<100 {
+            selectedText = (try await webView.evaluateJavaScript("window.getSelection().toString()") as? String) ?? ""
+            if selectedText == "Needle" { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(selectedText == "Needle")
+        let countCell = try #require(searchField.cell as? ReaderSearchFieldCell)
+        for _ in 0..<100 {
+            if countCell.matchSummary.hasSuffix("/2") { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let firstSummary = countCell.matchSummary
+        #expect(["1/2", "2/2"].contains(firstSummary))
+        let otherSummary = firstSummary == "1/2" ? "2/2" : "1/2"
+        let ordinaryCount = try await webView.evaluateJavaScript("window.reader.searchPosition('READING content.').total")
+        #expect(ordinaryCount as? Int == 60)
+        let literalCount = try await webView.evaluateJavaScript("window.reader.searchPosition('.*').total")
+        #expect(literalCount as? Int == 0)
+        let firstY = try #require(try await webView.evaluateJavaScript("window.scrollY") as? Double)
+        container.performFindAction(.nextMatch)
+        var nextY = firstY
+        for _ in 0..<100 {
+            nextY = try #require(try await webView.evaluateJavaScript("window.scrollY") as? Double)
+            if abs(nextY - firstY) > 500 { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(abs(nextY - firstY) > 500)
+        for _ in 0..<100 {
+            if countCell.matchSummary == otherSummary { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(countCell.matchSummary == otherSummary)
+        container.performFindAction(.previousMatch)
+        for _ in 0..<100 {
+            let y = try #require(try await webView.evaluateJavaScript("window.scrollY") as? Double)
+            if abs(y - firstY) < 1 { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let previousY = try #require(try await webView.evaluateJavaScript("window.scrollY") as? Double)
+        #expect(abs(previousY - firstY) < 1)
+        for _ in 0..<100 {
+            if countCell.matchSummary == firstSummary { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(countCell.matchSummary == firstSummary)
+        editor.string = "no-such-match"
+        editor.didChangeText()
+        searchField.validateEditing()
+        let status = try #require(descendants(of: bar).compactMap { $0 as? NSTextField }.first {
+            $0.stringValue == "Not found"
+        })
+        for _ in 0..<100 {
+            if !status.isHiddenOrHasHiddenAncestor { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(!status.isHiddenOrHasHiddenAncestor)
+        #expect(countCell.matchSummary == "0/0")
+        editor.string = ""
+        editor.didChangeText()
+        searchField.validateEditing()
+        #expect(status.isHidden)
+        #expect(countCell.matchSummary.isEmpty)
+        container.doCommand(by: #selector(NSResponder.cancelOperation(_:)))
+        container.layoutSubtreeIfNeeded()
+        #expect(!container.isFindBarVisible)
+        #expect(webView.frame == container.bounds)
+        #expect(window.firstResponder === webView)
+        // A second Escape from the document must also be safe after dismissing Find.
+        container.doCommand(by: #selector(NSResponder.cancelOperation(_:)))
+        #expect(!container.isFindBarVisible)
+        #expect(window.firstResponder === webView)
+        let sameDocumentResult = try await webView.evaluateJavaScript("document === window.findTestDocument")
+        let sameDocument = try #require(sameDocumentResult as? Bool)
+        #expect(sameDocument)
+    }
+
+    @Test @MainActor
     func contentsLinksScrollToTitleAnchorsAndPreserveSidebarAnchors() async throws {
         let paragraphs = Array(repeating: "Reading content.\n\n", count: 30).joined()
         let rendered = MarkdownHTMLRenderer.render(
@@ -151,6 +309,154 @@ struct MarkdownWebRenderingTests {
             let handled = try #require(result as? Bool)
             #expect(handled)
         }
+    }
+
+    @Test @MainActor
+    func backReturnsToClickedLinkAfterReflowAndClearsSavedPosition() async throws {
+        let paragraphs = Array(repeating: "A paragraph that wraps when the reading font grows.\n\n", count: 35).joined()
+        let rendered = MarkdownHTMLRenderer.render(
+            "# Start\n\n\(paragraphs)[Jump to target](#target)\n\n[Jump to last](#last)\n\n[Missing](#missing)\n\n\(paragraphs)"
+                + "## Target\n\n\(paragraphs)## Last\n\n\(paragraphs)"
+        )
+        var backAvailability: [Bool] = []
+        var requestID: UUID?
+        var scrollAnchor: String?
+        var fontSize = 17.0
+        func reader() -> MarkdownWebView {
+            MarkdownWebView(
+                rendered: rendered,
+                documentRootURL: nil,
+                displayOptions: ReaderDisplayOptions(
+                    fontSize: fontSize,
+                    lineHeight: 1.6,
+                    contentWidthPercentage: 75,
+                    theme: .system,
+                    syntaxHighlighting: false
+                ),
+                scrollAnchor: scrollAnchor,
+                backRequestID: requestID,
+                onBackAvailabilityChange: { backAvailability.append($0) }
+            )
+        }
+        let hostingView = NSHostingView(rootView: reader())
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 500),
+            styleMask: [.borderless], backing: .buffered, defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.contentView = hostingView
+        window.orderFront(nil)
+        defer { window.close() }
+        func descendant(of view: NSView) -> WKWebView? {
+            if let webView = view as? WKWebView { return webView }
+            return view.subviews.lazy.compactMap { descendant(of: $0) }.first
+        }
+        var loadedWebView: WKWebView?
+        for _ in 0..<100 {
+            if let webView = descendant(of: hostingView),
+               (try? await webView.evaluateJavaScript("Boolean(window.reader)")) as? Bool == true,
+               !backAvailability.isEmpty {
+                loadedWebView = webView
+                break
+            }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        let webView = try #require(loadedWebView)
+        func number(_ expression: String) async throws -> Double {
+            try #require(try await webView.evaluateJavaScript(expression) as? Double)
+        }
+        func expectBackAvailability(_ available: Bool) async throws {
+            for _ in 0..<100 {
+                if backAvailability.last == available { return }
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            #expect(backAvailability.last == available)
+        }
+        func expectTop(_ expression: String, _ expected: Double) async throws {
+            var actual = Double.infinity
+            for _ in 0..<100 {
+                actual = try await number(expression)
+                if abs(actual - expected) < 1 { return }
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            #expect(abs(actual - expected) < 1, "\(expression): expected \(expected), got \(actual)")
+        }
+        try await expectBackAvailability(false)
+        _ = try await webView.evaluateJavaScript("document.querySelectorAll('a')[2].click();")
+        try await expectBackAvailability(false)
+        scrollAnchor = "heading-1"
+        hostingView.rootView = reader()
+        try await expectTop("document.getElementById('heading-1').getBoundingClientRect().top", 24)
+        try await expectBackAvailability(false)
+        scrollAnchor = nil
+        hostingView.rootView = reader()
+
+        let sourceTop = try await number(
+            """
+            (() => {
+              const source = document.querySelector('a');
+              window.scrollTo({top: window.scrollY + source.getBoundingClientRect().top - 160, behavior: 'instant'});
+              const top = source.getBoundingClientRect().top;
+              source.click();
+              return top;
+            })()
+            """
+        )
+        try await expectBackAvailability(true)
+        try await expectTop("document.getElementById('heading-1').getBoundingClientRect().top", 24)
+        fontSize = 26
+        hostingView.rootView = reader()
+        for _ in 0..<100 {
+            if (try? await webView.evaluateJavaScript("getComputedStyle(document.body).fontSize")) as? String == "26px" { break }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        _ = try await webView.evaluateJavaScript("window.scrollBy({top: 130, behavior: 'instant'});")
+        let destinationY = try await number("window.scrollY")
+        requestID = UUID()
+        hostingView.rootView = reader()
+        try await expectBackAvailability(false)
+        try await expectTop("document.querySelector('a').getBoundingClientRect().top", sourceTop)
+        let returnedY = try await number("window.scrollY")
+        #expect(abs(returnedY - destinationY) > 100)
+
+        // Back consumes the saved link; another Back has no effect.
+        requestID = UUID()
+        hostingView.rootView = reader()
+        try await Task.sleep(for: .milliseconds(100))
+        try await expectTop("window.scrollY", returnedY)
+        try await expectBackAvailability(false)
+        // Sidebar navigation after returning must not resurrect the saved link.
+        scrollAnchor = "heading-2"
+        hostingView.rootView = reader()
+        try await expectTop("document.getElementById('heading-2').getBoundingClientRect().top", 24)
+        try await expectBackAvailability(false)
+        scrollAnchor = nil
+        hostingView.rootView = reader()
+        // A second successful link replaces the first saved return position.
+        _ = try await webView.evaluateJavaScript("document.querySelector('a').click();")
+        try await expectBackAvailability(true)
+        try await expectTop("document.getElementById('heading-1').getBoundingClientRect().top", 24)
+        let nextSourceTop = try await number(
+            """
+            (() => {
+              const link = document.querySelectorAll('a')[1];
+              window.scrollTo({top: window.scrollY + link.getBoundingClientRect().top - 140, behavior: 'instant'});
+              const top = link.getBoundingClientRect().top;
+              link.click();
+              return top;
+            })()
+            """
+        )
+        try await expectBackAvailability(true)
+        try await expectTop("document.getElementById('heading-2').getBoundingClientRect().top", 24)
+        window.setContentSize(NSSize(width: 700, height: 500))
+        hostingView.layoutSubtreeIfNeeded()
+        try await expectTop("window.innerWidth", 700)
+        requestID = UUID()
+        hostingView.rootView = reader()
+        try await expectBackAvailability(false)
+        try await expectTop("document.querySelectorAll('a')[1].getBoundingClientRect().top", nextSourceTop)
+
     }
 
     @Test @MainActor

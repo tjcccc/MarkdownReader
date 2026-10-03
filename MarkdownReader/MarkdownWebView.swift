@@ -118,22 +118,33 @@ struct MarkdownWebView: NSViewRepresentable {
     var scrollAnchor: String?
     var onActiveHeadingChange: ((String) -> Void)?
     var onImageTap: ((NSImage) -> Void)?
+    var backRequestID: UUID?
+    var onBackAvailabilityChange: ((Bool) -> Void)?
+    var findRequest: FindRequest?
+    var onFindBarHeightChange: ((CGFloat) -> Void)?
+
+    struct FindRequest: Equatable {
+        let id = UUID()
+        let action: NSTextFinder.Action
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
             documentRootURL: documentRootURL,
             onImageTap: onImageTap,
-            onActiveHeadingChange: onActiveHeadingChange
+            onActiveHeadingChange: onActiveHeadingChange,
+            onBackAvailabilityChange: onBackAvailabilityChange
         )
     }
 
-    func makeNSView(context: Context) -> WKWebView {
+    func makeNSView(context: Context) -> MarkdownReaderWebContainer {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.userContentController.add(context.coordinator, name: "copyCode")
         configuration.userContentController.add(context.coordinator, name: "imageClicked")
         configuration.userContentController.add(context.coordinator, name: "activeHeadingChanged")
+        configuration.userContentController.add(context.coordinator, name: "backAvailabilityChanged")
         configuration.setURLSchemeHandler(
             context.coordinator.resourceHandler,
             forURLScheme: MarkdownResourceResolver.scheme
@@ -147,12 +158,18 @@ struct MarkdownWebView: NSViewRepresentable {
         context.coordinator.webView = webView
         context.coordinator.load(rendered, options: displayOptions, in: webView)
         context.coordinator.requestScroll(to: scrollAnchor)
-        return webView
+        let container = MarkdownReaderWebContainer(webView: webView)
+        container.onFindBarHeightChange = onFindBarHeightChange
+        context.coordinator.requestFind(findRequest, in: container)
+        return container
     }
 
-    func updateNSView(_ webView: WKWebView, context: Context) {
+    func updateNSView(_ container: MarkdownReaderWebContainer, context: Context) {
+        let webView = container.webView
+        container.onFindBarHeightChange = onFindBarHeightChange
         context.coordinator.onImageTap = onImageTap
         context.coordinator.onActiveHeadingChange = onActiveHeadingChange
+        context.coordinator.onBackAvailabilityChange = onBackAvailabilityChange
 
         if context.coordinator.lastBodyHTML != rendered.bodyHTML {
             context.coordinator.load(rendered, options: displayOptions, in: webView)
@@ -160,13 +177,17 @@ struct MarkdownWebView: NSViewRepresentable {
             context.coordinator.apply(displayOptions)
         }
         context.coordinator.requestScroll(to: scrollAnchor)
+        context.coordinator.goBack(backRequestID)
+        context.coordinator.requestFind(findRequest, in: container)
     }
 
-    static func dismantleNSView(_ webView: WKWebView, coordinator: Coordinator) {
+    static func dismantleNSView(_ container: MarkdownReaderWebContainer, coordinator: Coordinator) {
+        let webView = container.webView
         webView.stopLoading()
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "copyCode")
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "imageClicked")
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "activeHeadingChanged")
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: "backAvailabilityChanged")
         webView.navigationDelegate = nil
     }
 
@@ -176,21 +197,26 @@ struct MarkdownWebView: NSViewRepresentable {
         fileprivate weak var webView: WKWebView?
         fileprivate var onImageTap: ((NSImage) -> Void)?
         fileprivate var onActiveHeadingChange: ((String) -> Void)?
+        fileprivate var onBackAvailabilityChange: ((Bool) -> Void)?
         fileprivate var lastBodyHTML: String?
 
         private var latestOptions: ReaderDisplayOptions?
         private var lastScrollAnchor: String?
+        private var lastBackRequestID: UUID?
+        private var lastFindRequestID: UUID?
         private var pageIsReady = false
         private var headingAnchors: Set<String> = []
 
         init(
             documentRootURL: URL?,
             onImageTap: ((NSImage) -> Void)?,
-            onActiveHeadingChange: ((String) -> Void)? = nil
+            onActiveHeadingChange: ((String) -> Void)? = nil,
+            onBackAvailabilityChange: ((Bool) -> Void)? = nil
         ) {
             resourceHandler = MarkdownResourceSchemeHandler(documentRootURL: documentRootURL)
             self.onImageTap = onImageTap
             self.onActiveHeadingChange = onActiveHeadingChange
+            self.onBackAvailabilityChange = onBackAvailabilityChange
         }
 
         fileprivate func load(
@@ -224,6 +250,18 @@ struct MarkdownWebView: NSViewRepresentable {
             lastScrollAnchor = anchor
             guard pageIsReady, let anchor else { return }
             evaluateScroll(to: anchor)
+        }
+
+        fileprivate func requestFind(_ request: FindRequest?, in container: MarkdownReaderWebContainer) {
+            guard let request, lastFindRequestID != request.id else { return }
+            lastFindRequestID = request.id
+            container.performFindAction(request.action)
+        }
+
+        fileprivate func goBack(_ requestID: UUID?) {
+            guard pageIsReady, let requestID, lastBackRequestID != requestID else { return }
+            lastBackRequestID = requestID
+            webView?.evaluateJavaScript("window.reader?.goBack();")
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -271,6 +309,10 @@ struct MarkdownWebView: NSViewRepresentable {
                       let anchor = message.body as? String,
                       headingAnchors.contains(anchor) else { return }
                 onActiveHeadingChange?(anchor)
+            case "backAvailabilityChanged":
+                guard message.frameInfo.isMainFrame,
+                      let available = message.body as? Bool else { return }
+                onBackAvailabilityChange?(available)
             case "copyCode":
                 guard let code = message.body as? String else { return }
                 let pasteboard = NSPasteboard.general

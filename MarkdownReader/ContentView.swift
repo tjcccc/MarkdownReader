@@ -27,6 +27,11 @@ struct ContentView: View {
     @State private var scrollAnchor: String?
     @State private var columnVisibility: NavigationSplitViewVisibility
     @State private var previewImage: NSImage?
+    @State private var backRequestID: UUID?
+    @State private var canGoBack = false
+    @State private var isBackHovered = false
+    @State private var findRequest: MarkdownWebView.FindRequest?
+    @State private var findBarHeight: CGFloat = 0
 
     @AppStorage("reader.fontSize") private var fontSize = ReaderDisplayOptions.defaultFontSize
     @AppStorage("reader.lineHeight") private var lineHeight = ReaderDisplayOptions.defaultLineHeight
@@ -51,6 +56,34 @@ struct ContentView: View {
             theme: theme,
             syntaxHighlighting: syntaxHighlighting
         )
+    }
+
+    private var backButton: some View {
+        Button {
+            backRequestID = UUID()
+        } label: {
+            Image(systemName: "arrow.left")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.primary)
+                .frame(width: 36, height: 36)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Back")
+    }
+
+    @ViewBuilder
+    private var floatingBackButton: some View {
+        if #available(macOS 26.0, *) {
+            backButton.glassEffect(.regular.interactive(), in: Circle())
+        } else {
+            backButton
+                .background(.regularMaterial, in: Circle())
+                .overlay {
+                    Circle().strokeBorder(.primary.opacity(0.12), lineWidth: 0.5)
+                        .allowsHitTesting(false)
+                }
+        }
     }
 
     var body: some View {
@@ -91,12 +124,46 @@ struct ContentView: View {
                 },
                 onImageTap: { image in
                     withAnimation(.easeInOut(duration: 0.15)) { previewImage = image }
-                }
+                },
+                backRequestID: backRequestID,
+                onBackAvailabilityChange: { canGoBack = $0 },
+                findRequest: findRequest,
+                onFindBarHeightChange: { findBarHeight = $0 }
             )
             .background(Color(nsColor: .textBackgroundColor))
+            .overlay(alignment: .topLeading) {
+                if canGoBack && previewImage == nil {
+                    floatingBackButton
+                        .overlay {
+                            Circle()
+                                .fill(.primary.opacity(isBackHovered ? 0.12 : 0))
+                                .allowsHitTesting(false)
+                        }
+                        .animation(.easeOut(duration: 0.12), value: isBackHovered)
+                        .onHover { isBackHovered = $0 }
+                        .onDisappear { isBackHovered = false }
+                        .keyboardShortcut("[", modifiers: .command)
+                        .help("Return to the link you clicked (⌘[)")
+                        .padding(12)
+                        .padding(.top, findBarHeight)
+                }
+            }
         }
         .navigationSplitViewStyle(.balanced)
+        .preferredColorScheme(theme.colorScheme)
+        .toolbarBackground(Color(nsColor: ReaderChrome.backgroundColor), for: .windowToolbar)
+        .toolbarBackground(.visible, for: .windowToolbar)
+        .focusedSceneValue(\.readerFindActions, ReaderFindActions { action in
+            findRequest = .init(action: action)
+        })
         .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Search", systemImage: "magnifyingglass") {
+                    findRequest = .init(action: .showFindInterface)
+                }
+                .help("Find in document (⌘F)")
+                .accessibilityIdentifier("reader-search-button")
+            }
             ToolbarItem(placement: .primaryAction) {
                 ReaderSettingsToolbarButton(
                     fontSize: $fontSize,

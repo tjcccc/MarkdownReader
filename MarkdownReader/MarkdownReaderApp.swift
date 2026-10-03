@@ -18,6 +18,7 @@ struct MarkdownReaderApp: App {
         .restorationBehavior(.disabled)
         .commands {
             SidebarCommands()
+            ReaderFindCommands()
         }
     }
 }

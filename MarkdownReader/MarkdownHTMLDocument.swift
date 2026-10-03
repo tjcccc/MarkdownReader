@@ -462,6 +462,7 @@ enum MarkdownHTMLDocument {
               let highlightingEnabled = null;
               let headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
               const headingsByTitleAnchor = new Map();
+              let returnPosition = null;
               let headingActivationOffset = 24;
               let scrollingElement = document.scrollingElement;
               let viewport = document.documentElement;
@@ -577,9 +578,31 @@ enum MarkdownHTMLDocument {
                     }
                     const target = headingsByTitleAnchor.get(anchor) || document.getElementById(anchor);
                     if (!target) return;
+                    returnPosition = { link, top: link.getBoundingClientRect().top };
+                    updateBackAvailability();
                     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   });
                 });
+              }
+
+              function updateBackAvailability() {
+                window.webkit?.messageHandlers?.backAvailabilityChanged?.postMessage(
+                  returnPosition !== null
+                );
+              }
+
+              function goBack() {
+                if (!returnPosition) return;
+                const { link, top } = returnPosition;
+                returnPosition = null;
+                if (link.isConnected) {
+                  window.scrollTo({
+                    top: window.scrollY + link.getBoundingClientRect().top - top,
+                    behavior: 'instant'
+                  });
+                }
+                updateBackAvailability();
+                scheduleActiveHeadingUpdate();
               }
 
               function applyHighlighting(enabled) {
@@ -629,6 +652,42 @@ enum MarkdownHTMLDocument {
                 });
               }
 
+              function searchPosition(query) {
+                if (!query) return { current: 0, total: 0 };
+                const body = document.querySelector('.markdown-body');
+                const selection = window.getSelection();
+                const selectedRange = selection.rangeCount ? selection.getRangeAt(0) : null;
+                const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+                let text = '';
+                let selectedStart = -1;
+                let previousBlock = null;
+                let node;
+                while ((node = walker.nextNode())) {
+                  const parent = node.parentElement;
+                  if (!parent.getClientRects().length) continue;
+                  let block = parent;
+                  while (block !== body && ['inline', 'contents'].includes(getComputedStyle(block).display)) {
+                    block = block.parentElement;
+                  }
+                  // Source indentation between blocks is not searchable document text.
+                  if (!node.textContent.trim() && node.textContent.includes('\n') && parent === block && getComputedStyle(block).whiteSpace === 'normal') continue;
+                  if (previousBlock && block !== previousBlock) text += '\n';
+                  const collapsesWhitespace = ['normal', 'nowrap'].includes(getComputedStyle(parent).whiteSpace);
+                  const normalize = value => collapsesWhitespace ? value.replace(/[ \t\n\r\f]+/g, ' ') : value;
+                  const value = normalize(node.textContent);
+                  const sharedSpace = text.endsWith(' ') && value.startsWith(' ') ? 1 : 0;
+                  if (selectedRange && selectedRange.startContainer === node) {
+                    selectedStart = text.length + normalize(node.textContent.slice(0, selectedRange.startOffset)).length - sharedSpace;
+                  }
+                  text += value.slice(sharedSpace);
+                  previousBlock = block;
+                }
+                const literal = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const matches = [...text.matchAll(new RegExp(literal, 'giu'))];
+                const index = matches.findIndex(match => match.index === selectedStart);
+                return { current: index < 0 ? 0 : index + 1, total: matches.length };
+              }
+
               decorateHeadings();
               decorateCodeBlocks();
               decorateImages();
@@ -636,8 +695,9 @@ enum MarkdownHTMLDocument {
               window.addEventListener('scroll', scheduleActiveHeadingUpdate, { passive: true });
               window.addEventListener('resize', scheduleActiveHeadingUpdate);
               activeHeadingObserver.observe(document.querySelector('.markdown-body'));
-              window.reader = { applySettings, scrollToHeading };
+              window.reader = { applySettings, scrollToHeading, goBack, searchPosition };
               applySettings(\#(settings));
+              updateBackAvailability();
             })();
           </script>
         </body>

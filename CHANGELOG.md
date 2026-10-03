@@ -4,6 +4,20 @@ Notable user-facing and release changes are recorded here. Dates use `YYYY-MM-DD
 
 ## Unreleased
 
+**Work in progress — 2026-10-03 checkpoint. Not finished; version remains `0.7.2`.**
+
+### Added
+
+- A Search toolbar button and native macOS find bar with incremental document search, a current/total result count, match navigation, and standard Find shortcuts; its background matches the title bar, with no Replace controls.
+
+- A floating, icon-only circular Back button returns to the last clicked in-document link, including after font-size or window-width changes, then hides.
+
+### Fixed
+
+- Prevent Escape from crashing the reader when the search bar is already closed.
+- Apply Light/Dark/System theme changes to the title bar, search strip, sidebar, and settings popover together with the document.
+- Keep the search bar background within its strip so opening Search does not cover the document.
+
 ## 0.7.2 - 2026-10-03
 
 ### Fixed
