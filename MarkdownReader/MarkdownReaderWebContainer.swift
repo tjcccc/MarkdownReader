@@ -5,6 +5,18 @@ import WebKit
 
 @MainActor
 final class ReaderFindBarView: NSView {
+    /// Matches the transparent toolbar above the detail pane: the text background,
+    /// plus the faint white tint the toolbar adds in Dark (measured on macOS 27).
+    static let backgroundColor = NSColor(name: nil) { appearance in
+        let base = NSColor.textBackgroundColor
+        guard appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua else { return base }
+        var tinted = base
+        appearance.performAsCurrentDrawingAppearance {
+            tinted = base.usingColorSpace(.sRGB)?.blended(withFraction: 0.027, of: .white) ?? base
+        }
+        return tinted
+    }
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         clipsToBounds = true
@@ -14,9 +26,13 @@ final class ReaderFindBarView: NSView {
 
     override var isOpaque: Bool { true }
 
+    // A hairline separates the bar from the document.
     override func draw(_ dirtyRect: NSRect) {
-        ReaderChrome.backgroundColor.setFill()
+        Self.backgroundColor.setFill()
         bounds.intersection(dirtyRect).fill()
+        NSColor.separatorColor.setFill()
+        NSRect(x: 0, y: bounds.minY, width: bounds.width, height: 1)
+            .intersection(dirtyRect).fill()
     }
 
     override func viewDidChangeEffectiveAppearance() {
@@ -216,12 +232,17 @@ final class MarkdownReaderWebContainer: NSView, NSSearchFieldDelegate {
         searchGeneration += 1
         statusLabel.isHidden = true
         updateMatchSummary("")
-        webView.find("", configuration: WKFindConfiguration()) { _ in }
+        // WebKit keeps painting the current match after an empty query; only a
+        // failed search removes it, so search for text no document contains.
+        webView.find("\u{1}\u{2}\(UUID().uuidString)", configuration: WKFindConfiguration()) { _ in }
     }
 
     override func cancelOperation(_ sender: Any?) {
-        if isFindBarVisible { setFindBarVisible(false) }
-
+        if isFindBarVisible {
+            setFindBarVisible(false)
+        } else {
+            nextResponder?.tryToPerform(#selector(cancelOperation(_:)), with: sender)
+        }
     }
 
     @objc private func navigateMatches(_ sender: NSSegmentedControl) {

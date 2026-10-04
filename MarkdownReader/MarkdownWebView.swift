@@ -25,13 +25,14 @@ struct MarkdownResourceResolver {
     func resolveDocumentURL(_ requestURL: URL) -> URL? {
         guard requestURL.scheme == Self.scheme,
               requestURL.host == "document",
-              let rootURL,
-              let decodedPath = requestURL.path.removingPercentEncoding
+              let rootURL
         else {
             return nil
         }
 
-        let relativePath = decodedPath.drop(while: { $0 == "/" })
+        // URL.path is already percent-decoded; decoding again would turn a
+        // literal "%20" in a file name into a space.
+        let relativePath = requestURL.path.drop(while: { $0 == "/" })
         guard !relativePath.isEmpty else { return nil }
 
         let candidate = rootURL
@@ -42,6 +43,18 @@ struct MarkdownResourceResolver {
 
         guard candidate.path.hasPrefix(rootPath) else { return nil }
         return candidate
+    }
+
+    /// Whether a clicked document-relative link may open in its default app.
+    /// Anything else, such as apps, scripts, packages, or folders, is only
+    /// revealed in Finder so a link click can never launch code.
+    static func opensLinkedFileDirectly(_ fileURL: URL) -> Bool {
+        let values = try? fileURL.resourceValues(forKeys: [.isRegularFileKey, .contentTypeKey])
+        guard values?.isRegularFile == true, let type = values?.contentType else { return false }
+        let viewable: [UTType] = [.image, .pdf, .audiovisualContent, .plainText]
+        let executable: [UTType] = [.executable, .script, .shellScript]
+        return viewable.contains { type.conforms(to: $0) }
+            && !executable.contains { type.conforms(to: $0) }
     }
 }
 
@@ -205,6 +218,7 @@ struct MarkdownWebView: NSViewRepresentable {
         private var lastBackRequestID: UUID?
         private var lastFindRequestID: UUID?
         private var pageIsReady = false
+        private var pendingScrollY: Double?
         private var headingAnchors: Set<String> = []
 
         init(
@@ -224,10 +238,12 @@ struct MarkdownWebView: NSViewRepresentable {
             options: ReaderDisplayOptions,
             in webView: WKWebView
         ) {
+            let isReload = pageIsReady
             lastBodyHTML = rendered.bodyHTML
             latestOptions = options
             lastScrollAnchor = nil
             pageIsReady = false
+            pendingScrollY = nil
             headingAnchors = Set(rendered.toc.map(\.anchor))
 
             let document = MarkdownHTMLDocument.make(
@@ -235,7 +251,16 @@ struct MarkdownWebView: NSViewRepresentable {
                 options: options
             )
             let baseURL = URL(string: "\(MarkdownResourceResolver.scheme)://document/")
-            webView.loadHTMLString(document, baseURL: baseURL)
+            guard isReload else {
+                webView.loadHTMLString(document, baseURL: baseURL)
+                return
+            }
+            // Keep the reading position when the file changes on disk.
+            webView.evaluateJavaScript("window.scrollY") { [weak self, weak webView] value, _ in
+                guard let self, let webView, self.lastBodyHTML == rendered.bodyHTML else { return }
+                self.pendingScrollY = value as? Double
+                webView.loadHTMLString(document, baseURL: baseURL)
+            }
         }
 
         fileprivate func apply(_ options: ReaderDisplayOptions) {
@@ -269,6 +294,10 @@ struct MarkdownWebView: NSViewRepresentable {
             if let latestOptions {
                 evaluateSettings(latestOptions)
             }
+            if let pendingScrollY {
+                self.pendingScrollY = nil
+                webView.evaluateJavaScript("window.scrollTo(0, \(pendingScrollY));")
+            }
             if let lastScrollAnchor {
                 evaluateScroll(to: lastScrollAnchor)
             }
@@ -288,7 +317,11 @@ struct MarkdownWebView: NSViewRepresentable {
 
             if url.scheme == MarkdownResourceResolver.scheme,
                let fileURL = resourceHandler.resolver.resolveDocumentURL(url) {
-                NSWorkspace.shared.open(fileURL)
+                if MarkdownResourceResolver.opensLinkedFileDirectly(fileURL) {
+                    NSWorkspace.shared.open(fileURL)
+                } else if FileManager.default.fileExists(atPath: fileURL.path) {
+                    NSWorkspace.shared.activateFileViewerSelecting([fileURL])
+                }
                 decisionHandler(.cancel)
                 return
             }
@@ -305,10 +338,11 @@ struct MarkdownWebView: NSViewRepresentable {
         ) {
             switch message.name {
             case "activeHeadingChanged":
+                // Content above the first heading or under an untitled heading
+                // has no outline row, so it clears the selection.
                 guard message.frameInfo.isMainFrame,
-                      let anchor = message.body as? String,
-                      headingAnchors.contains(anchor) else { return }
-                onActiveHeadingChange?(anchor)
+                      let anchor = message.body as? String else { return }
+                onActiveHeadingChange?(headingAnchors.contains(anchor) ? anchor : "")
             case "backAvailabilityChanged":
                 guard message.frameInfo.isMainFrame,
                       let available = message.body as? Bool else { return }

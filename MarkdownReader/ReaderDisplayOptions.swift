@@ -6,16 +6,6 @@
 import AppKit
 import SwiftUI
 
-@MainActor
-enum ReaderChrome {
-    static let backgroundColor = NSColor(name: nil) { appearance in
-        if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-            return NSColor(white: 40.0 / 255.0, alpha: 1)
-        }
-        return NSColor.windowBackgroundColor
-    }
-}
-
 enum ReaderTheme: String, CaseIterable, Identifiable {
     case system
     case light
@@ -31,20 +21,47 @@ enum ReaderTheme: String, CaseIterable, Identifiable {
         }
     }
 
-    var colorScheme: ColorScheme? {
+    /// SwiftUI does not restore System after `.preferredColorScheme(nil)` follows
+    /// a forced scheme, so System always resolves to the current system scheme.
+    func colorScheme(system: ColorScheme) -> ColorScheme {
         switch self {
-        case .system: nil
+        case .system: system
         case .light: .light
         case .dark: .dark
         }
     }
 
-    var windowAppearance: NSAppearance? {
+    /// System resolves to the current system appearance explicitly. Clearing a
+    /// forced Dark override with `nil` leaves the window's views drawn dark.
+    func windowAppearance(systemAppearance: NSAppearance) -> NSAppearance? {
         switch self {
-        case .system: nil
+        case .system:
+            NSAppearance(named: systemAppearance.bestMatch(from: [.darkAqua, .aqua]) ?? .aqua)
         case .light: NSAppearance(named: .aqua)
         case .dark: NSAppearance(named: .darkAqua)
         }
+    }
+}
+
+/// Tracks the system Light/Dark appearance. The app never sets
+/// `NSApp.appearance`, so the application's effective appearance follows macOS.
+@MainActor
+@Observable
+final class SystemAppearance {
+    static let shared = SystemAppearance()
+
+    private(set) var colorScheme: ColorScheme
+    @ObservationIgnored private var observation: NSKeyValueObservation?
+
+    private init() {
+        colorScheme = Self.currentColorScheme()
+        observation = NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
+            MainActor.assumeIsolated { self?.colorScheme = Self.currentColorScheme() }
+        }
+    }
+
+    private static func currentColorScheme() -> ColorScheme {
+        NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? .dark : .light
     }
 }
 
@@ -54,13 +71,24 @@ final class ReaderWindowAppearanceView: NSView {
         didSet { applyAppearance() }
     }
 
+    private var systemAppearanceObservation: NSKeyValueObservation?
+
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        // The app never sets NSApp.appearance, so its effective appearance tracks
+        // the system and lets System mode follow Light/Dark switches.
+        systemAppearanceObservation = window == nil ? nil : NSApp.observe(\.effectiveAppearance) { [weak self] _, _ in
+            MainActor.assumeIsolated { self?.applyAppearance() }
+        }
         applyAppearance()
     }
 
     func applyAppearance() {
-        window?.appearance = theme.windowAppearance
+        guard let window else { return }
+        let appearance = theme.windowAppearance(systemAppearance: NSApp.effectiveAppearance)
+        if window.appearance?.name != appearance?.name {
+            window.appearance = appearance
+        }
     }
 }
 

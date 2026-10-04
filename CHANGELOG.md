@@ -2,9 +2,7 @@
 
 Notable user-facing and release changes are recorded here. Dates use `YYYY-MM-DD`.
 
-## Unreleased
-
-**Work in progress — 2026-10-03 checkpoint. Not finished; version remains `0.7.2`.**
+## 0.8.0 - 2026-10-04
 
 ### Added
 
@@ -17,6 +15,23 @@ Notable user-facing and release changes are recorded here. Dates use `YYYY-MM-DD
 - Prevent Escape from crashing the reader when the search bar is already closed.
 - Apply Light/Dark/System theme changes to the title bar, search strip, sidebar, and settings popover together with the document.
 - Keep the search bar background within its strip so opening Search does not cover the document.
+- Sidebar entries after an untitled heading (such as a logo-only H1) now scroll to and highlight the correct section.
+- No sidebar entry is highlighted while content above the first heading fills the view.
+- Closing the search bar removes the match highlight, and code-block "Copy" and language labels no longer count as search results.
+- The image preview now dims the whole window, closes with Escape, and disables Search while open.
+- Files changed on disk reload automatically and keep the scroll position.
+- Image and file links whose names contain `%` now resolve correctly.
+
+- Restore the native full-height sidebar and transparent toolbar; window dragging works across the whole title area again.
+- Switching the theme from Dark to System now follows the current macOS appearance across the whole window.
+- The Search toolbar button now toggles the find bar and shows a pressed state while it is open.
+- Sidebar outline titles have a little horizontal padding inside the selection highlight.
+
+- Trim the menus for a read-only reader: File no longer offers New, Save, Duplicate, Rename, Move To, or Revert To; Edit hides Undo, Redo, Cut, Paste, and Delete; and View no longer shows tab-bar items, since each document opens in its own window.
+
+### Security
+
+- Clicking a link to a file beside the document no longer launches apps or scripts; non-document types are revealed in Finder.
 
 ## 0.7.2 - 2026-10-03
 

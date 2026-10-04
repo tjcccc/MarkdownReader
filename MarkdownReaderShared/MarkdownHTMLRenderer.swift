@@ -80,6 +80,9 @@ enum MarkdownHTMLRenderer {
 
     private static func tableOfContents(in document: Node) -> [TOCItem] {
         var items: [TOCItem] = []
+        // The page script numbers every rendered heading, including untitled
+        // ones that the outline omits, so anchors follow the DOM order.
+        var headingIndex = 0
 
         func visitChildren(of parent: Node) {
             var child = cmark_node_first_child(parent)
@@ -88,16 +91,16 @@ enum MarkdownHTMLRenderer {
                     let title = plainText(in: node)
                         .trimmingCharacters(in: .whitespacesAndNewlines)
                     if !title.isEmpty {
-                        let id = items.count
                         items.append(
                             TOCItem(
-                                id: id,
+                                id: items.count,
                                 title: title,
                                 level: Int(cmark_node_get_heading_level(node)),
-                                anchor: "heading-\(id)"
+                                anchor: "heading-\(headingIndex)"
                             )
                         )
                     }
+                    headingIndex += 1
                 }
 
                 visitChildren(of: node)

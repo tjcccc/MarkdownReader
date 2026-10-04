@@ -253,7 +253,15 @@ struct MarkdownHTMLDocumentTests {
         #expect(window.appearance?.name == .aqua)
 
         appearanceView.theme = .system
-        #expect(window.appearance == nil)
+        let systemName = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua])
+        #expect(window.appearance?.name == systemName)
+    }
+
+    @Test func systemThemeNeverClearsTheSwiftUIColorScheme() {
+        #expect(ReaderTheme.system.colorScheme(system: .light) == .light)
+        #expect(ReaderTheme.system.colorScheme(system: .dark) == .dark)
+        #expect(ReaderTheme.light.colorScheme(system: .dark) == .light)
+        #expect(ReaderTheme.dark.colorScheme(system: .light) == .dark)
     }
 }
 

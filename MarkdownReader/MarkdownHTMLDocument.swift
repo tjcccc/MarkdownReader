@@ -356,6 +356,13 @@ enum MarkdownHTMLDocument {
               display: block;
             }
 
+            /* Toolbar labels are generated content so Find and search counts
+               only see document text. */
+            .code-language::before,
+            .copy-code::before {
+              content: attr(data-label);
+            }
+
             .copy-code {
               appearance: none;
               margin-left: auto;
@@ -472,7 +479,10 @@ enum MarkdownHTMLDocument {
 
               function updateActiveHeading() {
                 if (!headings.length) return;
-                let activeHeading = headings[0];
+                // Content above the first heading (such as a banner image) belongs
+                // to no section until that heading scrolls into view.
+                let activeHeading =
+                  headings[0].getBoundingClientRect().top < viewport.clientHeight ? headings[0] : null;
                 for (const heading of headings) {
                   if (heading.getBoundingClientRect().top > headingActivationOffset + 1) break;
                   activeHeading = heading;
@@ -481,9 +491,10 @@ enum MarkdownHTMLDocument {
                     window.scrollY + viewport.clientHeight >= scrollingElement.scrollHeight - 1) {
                   activeHeading = headings[headings.length - 1];
                 }
-                if (activeHeadingAnchor === activeHeading.id) return;
-                activeHeadingAnchor = activeHeading.id;
-                window.webkit?.messageHandlers?.activeHeadingChanged?.postMessage(activeHeading.id);
+                const anchor = activeHeading?.id ?? '';
+                if (activeHeadingAnchor === anchor) return;
+                activeHeadingAnchor = anchor;
+                window.webkit?.messageHandlers?.activeHeadingChanged?.postMessage(anchor);
               }
 
               function scheduleActiveHeadingUpdate() {
@@ -535,12 +546,12 @@ enum MarkdownHTMLDocument {
 
                   const language = document.createElement('span');
                   language.className = 'code-language';
-                  language.textContent = languageFor(code);
+                  language.dataset.label = languageFor(code);
 
                   const copy = document.createElement('button');
                   copy.className = 'copy-code';
                   copy.type = 'button';
-                  copy.textContent = 'Copy';
+                  copy.dataset.label = 'Copy';
                   copy.setAttribute('aria-label', 'Copy code');
                   copy.addEventListener('click', event => {
                     event.preventDefault();
@@ -548,8 +559,8 @@ enum MarkdownHTMLDocument {
                     window.webkit?.messageHandlers?.copyCode?.postMessage(
                       code.dataset.rawCode || ''
                     );
-                    copy.textContent = 'Copied';
-                    window.setTimeout(() => { copy.textContent = 'Copy'; }, 1500);
+                    copy.dataset.label = 'Copied';
+                    window.setTimeout(() => { copy.dataset.label = 'Copy'; }, 1500);
                   });
 
                   toolbar.append(language, copy);

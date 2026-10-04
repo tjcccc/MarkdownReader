@@ -15,11 +15,14 @@ private struct TableOfContentsRow: View {
             .fontWeight(item.level <= 2 ? .bold : .regular)
             .lineLimit(2)
             .padding(.leading, CGFloat(max(item.level - 1, 0) * 12))
+            // Keeps text off the selection capsule's edge.
+            .padding(.horizontal, 2)
     }
 }
 
 struct ContentView: View {
     let document: MarkdownReaderDocument
+    private let fileURL: URL?
     private let documentRootURL: URL?
 
     @State private var rendered: RenderedMarkdown
@@ -42,6 +45,7 @@ struct ContentView: View {
 
     init(document: MarkdownReaderDocument, fileURL: URL? = nil) {
         self.document = document
+        self.fileURL = fileURL
         documentRootURL = fileURL?.deletingLastPathComponent()
         let result = MarkdownHTMLRenderer.render(document.text)
         _rendered = State(initialValue: result)
@@ -122,9 +126,7 @@ struct ContentView: View {
                     selectedTOCID = rendered.toc.first { $0.anchor == anchor }?.id
                     scrollAnchor = nil
                 },
-                onImageTap: { image in
-                    withAnimation(.easeInOut(duration: 0.15)) { previewImage = image }
-                },
+                onImageTap: { previewImage = $0 },
                 backRequestID: backRequestID,
                 onBackAvailabilityChange: { canGoBack = $0 },
                 findRequest: findRequest,
@@ -150,17 +152,22 @@ struct ContentView: View {
             }
         }
         .navigationSplitViewStyle(.balanced)
-        .preferredColorScheme(theme.colorScheme)
-        .toolbarBackground(Color(nsColor: ReaderChrome.backgroundColor), for: .windowToolbar)
-        .toolbarBackground(.visible, for: .windowToolbar)
-        .focusedSceneValue(\.readerFindActions, ReaderFindActions { action in
+        // SwiftUI owns the hosted content's scheme; the window bridge below
+        // covers AppKit surfaces such as the settings popover.
+        .preferredColorScheme(theme.colorScheme(system: SystemAppearance.shared.colorScheme))
+        .focusedSceneValue(\.readerFindActions, previewImage == nil ? ReaderFindActions { action in
             findRequest = .init(action: action)
-        })
+        } : nil)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("Search", systemImage: "magnifyingglass") {
-                    findRequest = .init(action: .showFindInterface)
-                }
+                // The button toggles the bar and shows it as pressed while open;
+                // ⌘F always opens and focuses it.
+                Toggle("Search", systemImage: "magnifyingglass", isOn: Binding(
+                    get: { findBarHeight > 0 },
+                    set: { findRequest = .init(action: $0 ? .showFindInterface : .hideFindInterface) }
+                ))
+                .toggleStyle(.button)
+                .disabled(previewImage != nil)
                 .help("Find in document (⌘F)")
                 .accessibilityIdentifier("reader-search-button")
             }
@@ -174,17 +181,17 @@ struct ContentView: View {
                 )
             }
         }
-        .overlay {
-            if let previewImage {
-                ImageLightbox(image: previewImage) {
-                    withAnimation(.easeInOut(duration: 0.15)) { self.previewImage = nil }
-                }
-                .transition(.opacity)
-            }
-        }
         .background {
             ReaderWindowAppearanceBridge(theme: theme)
                 .frame(width: 0, height: 0)
+            ImageLightboxPresenter(image: previewImage) { previewImage = nil }
+                .frame(width: 0, height: 0)
+        }
+        .task(id: fileURL) {
+            guard let fileURL else { return }
+            for await text in DocumentFileMonitor.changes(of: fileURL, currentText: document.text) {
+                reload(text)
+            }
         }
         .onAppear {
             let normalized = ReaderDisplayOptions.normalizedContentWidthPercentage(
@@ -195,29 +202,13 @@ struct ContentView: View {
             }
         }
     }
-}
 
-/// A full-window image preview with a semi-transparent backdrop. Click anywhere
-/// or press Escape to dismiss.
-private struct ImageLightbox: View {
-    let image: NSImage
-    let onDismiss: () -> Void
-
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.7)
-            Image(nsImage: image)
-                .resizable()
-                .interpolation(.high)
-                .scaledToFit()
-                .frame(maxWidth: image.size.width, maxHeight: image.size.height)
-                .shadow(radius: 24)
-                .padding(40)
-        }
-        .ignoresSafeArea()
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onDismiss)
-        .onExitCommand(perform: onDismiss)
+    /// Re-renders after the file changes on disk; the web view keeps its scroll offset.
+    private func reload(_ text: String) {
+        let result = MarkdownHTMLRenderer.render(text)
+        guard result != rendered else { return }
+        scrollAnchor = nil
+        rendered = result
     }
 }
 
