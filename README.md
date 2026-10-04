@@ -2,7 +2,7 @@
 
 MarkdownReader is a small SwiftUI document app for opening and reading Markdown files on macOS. It is currently closer to a minimal viewer than a polished product.
 
-Current release snapshot: `0.8.0`
+Current release snapshot: `0.9.0`
 
 ## Current Status
 
@@ -15,6 +15,7 @@ Current release snapshot: `0.8.0`
 - Presents leading YAML frontmatter as a compact syntax-highlighted metadata panel instead of misreading it as a heading.
 - Searches the rendered document with a native macOS find bar whose background matches the title bar: use the Search button beside Settings or ⌘F, see the current/total match count, navigate with ⌘G/⇧⌘G, and close with Done or Escape. Search is read-only.
 - Reloads automatically when the open file changes on disk, keeping the reading position.
+- Keeps Favorites: star a document with the toolbar button or ⌘D, then reopen it from File → Open Favorite. Favorites follow renamed or moved files; a favorite whose file was deleted is explained and removed when chosen.
 - Shows clicked images in a full-window preview that closes with a click or Escape. Linked sibling files open directly only when they are viewable documents; apps and scripts are revealed in Finder, never launched.
 - Provides persistent reader settings for font size, line spacing, reading width, System/Light/Dark theme for the complete document window, and syntax highlighting.
 - Includes a macOS Quick Look preview extension for rendering Markdown from Finder with the Space bar and continuous WebKit text selection with ⌘A/⌘C; users enable or disable it in macOS Extensions settings.

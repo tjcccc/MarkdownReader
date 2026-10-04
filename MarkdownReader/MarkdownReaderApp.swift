@@ -24,6 +24,7 @@ struct MarkdownReaderApp: App {
             CommandGroup(replacing: .newItem) {}
             SidebarCommands()
             ReaderFindCommands()
+            FavoritesCommands()
         }
     }
 }

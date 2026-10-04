@@ -14,6 +14,11 @@ final class ReaderAppDelegate: NSObject, NSApplicationDelegate {
         NSWindow.allowsAutomaticWindowTabbing = false
     }
 
+    func applicationDidBecomeActive(_ notification: Notification) {
+        // Pick up favorites renamed or moved while the app was in the background.
+        FavoritesStore.shared.refreshLocations()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         ReaderMenuCleaner.clean(NSApp.mainMenu)
         // SwiftUI rebuilds menus when commands change; clean up after each rebuild.

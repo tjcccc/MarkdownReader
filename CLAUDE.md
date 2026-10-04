@@ -17,6 +17,7 @@ macOS SwiftUI Markdown **reader** (viewer only, never an editor). `DocumentGroup
 - Find uses public `WKWebView.find` (`NSTextFinder` doesn't scroll WebKit). Only a failed search clears WebKit's match highlight. Code-toolbar labels are CSS generated content so they're not searchable.
 - `NSResponder` has no `cancelOperation(_:)`: never call `super`; forward unhandled Escape with `nextResponder?.tryToPerform(...)`.
 - Menus: `ReaderMenuCleaner` removes file-modifying commands by action and hides editing items with `allowsKeyEquivalentWhenHidden` (the find field still needs ⌘V/⌘Z). Revert To is matched by position because AppKit inserts it lazily after launch. Don't replace SwiftUI's `.saveItem` group: that also drops Close, Close All, and Share.
+- Favorites (`FavoritesStore`) are file bookmarks in `UserDefaults` (`reader.favorites`), not bare paths. Menu titles that depend on window state come from focused values; SwiftUI doesn't refresh a command's title from an observed store. Focused-value commands are disabled in a background app with no key window, so test them in the foreground.
 - `NSView` doesn't clip by default on macOS 14+; custom drawing intersects `dirtyRect` with `bounds`.
 
 ## Build and test

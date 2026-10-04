@@ -36,6 +36,8 @@ struct ContentView: View {
     @State private var findRequest: MarkdownWebView.FindRequest?
     @State private var findBarHeight: CGFloat = 0
 
+    @State private var favorites = FavoritesStore.shared
+
     @AppStorage("reader.fontSize") private var fontSize = ReaderDisplayOptions.defaultFontSize
     @AppStorage("reader.lineHeight") private var lineHeight = ReaderDisplayOptions.defaultLineHeight
     @AppStorage("reader.contentWidth") private var contentWidthPercentage =
@@ -50,6 +52,13 @@ struct ContentView: View {
         let result = MarkdownHTMLRenderer.render(document.text)
         _rendered = State(initialValue: result)
         _columnVisibility = State(initialValue: result.toc.count >= 4 ? .all : .detailOnly)
+    }
+
+    private var favoriteToggle: ReaderFavoriteToggle? {
+        guard let fileURL, previewImage == nil else { return nil }
+        return ReaderFavoriteToggle(isFavorite: favorites.isFavorite(fileURL)) {
+            favorites.toggle(fileURL)
+        }
     }
 
     private var displayOptions: ReaderDisplayOptions {
@@ -158,6 +167,7 @@ struct ContentView: View {
         .focusedSceneValue(\.readerFindActions, previewImage == nil ? ReaderFindActions { action in
             findRequest = .init(action: action)
         } : nil)
+        .focusedSceneValue(\.readerFavoriteToggle, favoriteToggle)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 // The button toggles the bar and shows it as pressed while open;
@@ -170,6 +180,18 @@ struct ContentView: View {
                 .disabled(previewImage != nil)
                 .help("Find in document (⌘F)")
                 .accessibilityIdentifier("reader-search-button")
+            }
+            ToolbarItem(placement: .primaryAction) {
+                let isFavorite = favorites.isFavorite(fileURL)
+                Button(
+                    isFavorite ? "Remove from Favorites" : "Add to Favorites",
+                    systemImage: isFavorite ? "star.fill" : "star"
+                ) {
+                    if let fileURL { favorites.toggle(fileURL) }
+                }
+                .help(isFavorite ? "Remove from Favorites (⌘D)" : "Add to Favorites (⌘D)")
+                .accessibilityIdentifier("reader-favorite-button")
+                .disabled(fileURL == nil || previewImage != nil)
             }
             ToolbarItem(placement: .primaryAction) {
                 ReaderSettingsToolbarButton(
@@ -189,6 +211,8 @@ struct ContentView: View {
         }
         .task(id: fileURL) {
             guard let fileURL else { return }
+            // The document may have been renamed while open; keep the star accurate.
+            favorites.refreshLocations()
             for await text in DocumentFileMonitor.changes(of: fileURL, currentText: document.text) {
                 reload(text)
             }

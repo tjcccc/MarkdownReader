@@ -2,6 +2,12 @@
 
 Notable user-facing and release changes are recorded here. Dates use `YYYY-MM-DD`.
 
+## 0.9.0 - 2026-10-04
+
+### Added
+
+- Favorites: a star toolbar button (between Search and Settings) and File → Add to/Remove from Favorites (⌘D) mark the current document. File → Open Favorite lists favorites newest first, with folders shown for duplicate names and Clear Favorites… at the end. Favorites follow renamed or moved files; choosing one that was deleted or trashed explains why and removes it, with an option to show its original folder.
+
 ## 0.8.0 - 2026-10-04
 
 ### Added
