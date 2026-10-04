@@ -126,4 +126,5 @@ When these messages appear, use this check order:
 - Refine the GitHub-inspired typography and spacing against a wider set of real documents.
 - Add focused UI coverage for the settings popover, sidebar scrolling, code copying, and image lightbox.
 - Improve file decoding and error handling beyond UTF-8-only assumptions.
+- Prepare Mac App Store publication: sandbox with folder access, sandbox-safe Favorites, and App Store signing. See [TODO.md](TODO.md).
 - Refine document-window polish such as the unresolved `Locked` subtitle.
